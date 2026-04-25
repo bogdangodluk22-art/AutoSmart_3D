@@ -1,0 +1,3248 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoSmart — Перший 3D Шоурум з AI | Богдан Годлюк</title>
+<meta name="description" content="Як я побудував першу в Україні інтерактивну 3D платформу для вибору та придбання преміальних автомобілів з AI-консультантом.">
+<meta property="og:title" content="AutoSmart — Перший 3D Шоурум з AI | Богдан Годлюк">
+<meta property="og:description" content="Як я побудував першу в Україні інтерактивну 3D платформу для вибору преміальних авто з AI-консультантом. 4 гаражі · 20 авто · GPT-4o 24/7.">
+<meta property="og:image" content="https://raw.githubusercontent.com/bogdangodluk22-art/AutoSmart_3D/main/preview.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="628">
+<meta property="og:image:alt" content="AutoSmart — Find Your Drive">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://builtwithai.pro/autosmart/article">
+<meta property="og:site_name" content="Built with AI">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AutoSmart — Перший 3D Шоурум з AI">
+<meta name="twitter:description" content="Як я побудував першу в Україні інтерактивну 3D платформу для вибору преміальних авто з AI-консультантом.">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/bogdangodluk22-art/AutoSmart_3D/main/preview.jpg">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&family=Barlow:wght@300;400;500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════
+   TOKENS
+════════════════════════════════════════ */
+:root {
+  --red:        #e8001e;
+  --red-dim:    rgba(232,0,30,0.18);
+  --red-glow:   rgba(232,0,30,0.35);
+  --dark:       #0d0d0f;
+  --carbon-1:   #1a1a1a;
+  --carbon-2:   #141414;
+  --white:      #f0f0f0;
+  --muted:      rgba(240,240,240,0.4);
+  --muted2:     rgba(240,240,240,0.65);
+  --border:     rgba(255,255,255,0.07);
+  --display:    'Bebas Neue', sans-serif;
+  --condensed:  'Barlow Condensed', sans-serif;
+  --body:       'Barlow', sans-serif;
+  --mono:       'JetBrains Mono', monospace;
+}
+
+/* ════════════════════════════════════════
+   RESET & BASE
+════════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  background: var(--dark);
+  color: var(--white);
+  font-family: var(--body);
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* На мобільних cursor: none ламає рендер в Safari iOS */
+@media (hover: none), (pointer: coarse) {
+  body { cursor: auto; }
+  #cursor-dot, #cursor-ring { display: none !important; }
+}
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ════════════════════════════════════════
+   PERFORMANCE
+════════════════════════════════════════ */
+/* content-visibility: auto — вимкнено, ламає Safari iOS */
+/* will-change тільки на елементах що реально анімуються */
+.ticker-inner, .nav-strip-inner { will-change: transform; }
+.hero-video-wrap video { will-change: auto; }
+#bmwCanvas { will-change: contents; }
+::-webkit-scrollbar { width: 2px; }
+::-webkit-scrollbar-track { background: var(--dark); }
+::-webkit-scrollbar-thumb { background: var(--red); border-radius: 2px; }
+
+/* ── SELECTION ── */
+::selection { background: rgba(232,0,30,0.25); color: #fff; }
+
+/* ════════════════════════════════════════
+   CUSTOM CURSOR
+════════════════════════════════════════ */
+#cursor-dot {
+  position: fixed;
+  width: 8px; height: 8px;
+  background: var(--red);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%,-50%);
+  box-shadow: 0 0 8px var(--red-glow);
+  transition: width .2s, height .2s;
+}
+#cursor-ring {
+  position: fixed;
+  width: 36px; height: 36px;
+  border: 1px solid rgba(232,0,30,0.4);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%,-50%);
+  transition: width .25s, height .25s, opacity .25s, border-color .25s;
+}
+body:has(a:hover) #cursor-dot  { width:14px; height:14px; }
+body:has(a:hover) #cursor-ring { width:52px; height:52px; opacity:.5; border-color: rgba(232,0,30,0.7); }
+
+/* ════════════════════════════════════════
+   ANIMATIONS
+════════════════════════════════════════ */
+@keyframes fadeUp    { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn    { from{opacity:0} to{opacity:1} }
+@keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:.2} }
+@keyframes scanline  { 0%{top:-2px;opacity:0} 5%{opacity:.6} 95%{opacity:.3} 100%{top:102%;opacity:0} }
+@keyframes scrollHint{ 0%,100%{opacity:.3;transform:translateX(-50%) scaleY(1)} 50%{opacity:1;transform:translateX(-50%) scaleY(1.15)} }
+@keyframes echoFade  { 0%{opacity:.5;transform:translate(-50%,-50%) scale(.8)} 100%{opacity:0;transform:translate(-50%,-50%) scale(1.8)} }
+@keyframes ticker    { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+@keyframes redPulse  { 0%,100%{box-shadow:0 0 20px rgba(232,0,30,.1)} 50%{box-shadow:0 0 40px rgba(232,0,30,.3)} }
+
+/* Entry animations */
+.fade-in { opacity:0; animation:fadeUp .9s ease forwards; }
+.d1{animation-delay:.1s} .d2{animation-delay:.3s} .d3{animation-delay:.5s} .d4{animation-delay:.7s} .d5{animation-delay:.9s}
+
+/* ════════════════════════════════════════
+   HERO
+════════════════════════════════════════ */
+#hero {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #0d0d0f;
+}
+
+/* ── Video background ── */
+.hero-video-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.hero-video-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Overlays ── */
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(0,0,0,0.72) 0%,
+    rgba(0,0,0,0.35) 45%,
+    rgba(0,0,0,0.35) 55%,
+    rgba(0,0,0,0.72) 100%
+  );
+  z-index: 1;
+}
+.hero-overlay-bottom {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 40%;
+  background: linear-gradient(to top, rgba(13,13,15,0.9) 0%, transparent 100%);
+  z-index: 1;
+}
+.hero-overlay-top {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 30%;
+  background: linear-gradient(to bottom, rgba(13,13,15,0.5) 0%, transparent 100%);
+  z-index: 1;
+}
+
+/* ── Carbon texture overlay ── */
+.hero-carbon {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image:
+    repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.008) 2px, rgba(255,255,255,0.008) 4px),
+    repeating-linear-gradient(-45deg, transparent, transparent 2px, rgba(255,255,255,0.008) 2px, rgba(255,255,255,0.008) 4px);
+  pointer-events: none;
+}
+
+/* ── Red scanline ── */
+.scanline {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--red), transparent);
+  opacity: 0;
+  animation: scanline 7s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ── All hero children above overlays ── */
+#hero > *:not(.hero-video-wrap):not(.hero-overlay):not(.hero-overlay-bottom):not(.hero-overlay-top):not(.hero-carbon):not(.scanline) {
+  z-index: 10;
+}
+
+/* ── Name (top left) ── */
+.hero-name {
+  position: absolute;
+  top: 52px;
+  left: 60px;
+  z-index: 10;
+}
+.hero-name-line {
+  font-family: var(--display);
+  font-size: clamp(44px, 6.5vw, 88px);
+  font-weight: 400;
+  line-height: 0.95;
+  color: #fff;
+  letter-spacing: 0.04em;
+  display: block;
+  text-shadow: 0 0 60px rgba(232,0,30,0.2), 0 4px 24px rgba(0,0,0,0.9);
+}
+.hero-name-line .red { color: var(--red); }
+.hero-name-sub {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+}
+
+/* ── Nav (top right) ── */
+.hero-nav {
+  position: absolute;
+  top: 60px;
+  right: 60px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.hero-nav a {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: rgba(255,255,255,0.5);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color .25s;
+}
+.hero-nav a:hover { color: var(--red); }
+
+/* ── Status badge (mid right) ── */
+.hero-badge {
+  position: absolute;
+  top: 50%;
+  right: 60px;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.badge-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: pulse 2.5s infinite;
+  box-shadow: 0 0 8px var(--red-glow);
+}
+.badge-text {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+}
+
+/* ── Tagline/roles (bottom left) ── */
+.hero-tagline {
+  position: absolute;
+  bottom: 52px;
+  left: 60px;
+  z-index: 10;
+}
+.hero-tagline-roles {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+}
+
+/* ── Scroll hint (bottom center) ── */
+.scroll-hint {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.scroll-line {
+  width: 1px; height: 44px;
+  background: linear-gradient(to bottom, transparent, rgba(232,0,30,0.6));
+  animation: scrollHint 2s ease-in-out infinite;
+}
+.scroll-text {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* ── Socials (bottom right) ── */
+.hero-socials {
+  position: absolute;
+  bottom: 90px;
+  right: 60px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: flex-end;
+}
+@media (max-width: 768px) {
+  .hero-socials { bottom: 140px; }
+}
+.social-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  transition: opacity .3s;
+}
+.social-link:hover { opacity: .65; }
+.social-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+}
+.social-icon {
+  width: 18px; height: 18px;
+  fill: rgba(255,255,255,0.5);
+  flex-shrink: 0;
+}
+
+/* ── Red corner accent lines ── */
+.corner-tl, .corner-br {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+}
+.corner-tl {
+  top: 48px; left: 48px;
+  width: 18px; height: 18px;
+  border-top: 1px solid var(--red);
+  border-left: 1px solid var(--red);
+  opacity: 0.5;
+}
+.corner-br {
+  bottom: 48px; right: 48px;
+  width: 18px; height: 18px;
+  border-bottom: 1px solid var(--red);
+  border-right: 1px solid var(--red);
+  opacity: 0.5;
+}
+
+/* echo click effect */
+.echo {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9990;
+  background: rgba(232,0,30,0.15);
+  transform: translate(-50%,-50%);
+  animation: echoFade .7s ease-out forwards;
+}
+
+/* ════════════════════════════════════════
+   TICKER STRIP (post-hero)
+════════════════════════════════════════ */
+.ticker-wrap {
+  overflow: hidden;
+  background: rgba(232,0,30,0.04);
+  border-top: 1px solid rgba(232,0,30,0.15);
+  border-bottom: 1px solid rgba(232,0,30,0.15);
+  padding: 12px 0;
+  white-space: nowrap;
+}
+.ticker-inner { display: inline-flex; animation: ticker 30s linear infinite; }
+.ticker-item {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  padding: 0 44px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ticker-item span { color: var(--red); margin-right: 8px; }
+
+/* ════════════════════════════════════════
+   STICKY NAV STRIP
+════════════════════════════════════════ */
+#nav-strip {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: rgba(13,13,15,0.95);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+  height: 52px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.nav-strip-inner {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  white-space: nowrap;
+  animation: ticker 50s linear infinite;
+  padding-left: 40px;
+}
+.nav-strip-inner:hover { animation-play-state: paused; }
+.nav-item {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  text-decoration: none;
+  padding: 0 28px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--border);
+  transition: color .2s, background .2s;
+  flex-shrink: 0;
+}
+.nav-item:hover { color: var(--red); background: rgba(232,0,30,0.04); }
+.nav-item.active { color: var(--red); }
+.nav-logo-strip {
+  font-family: var(--display);
+  font-size: 18px;
+  color: #fff;
+  letter-spacing: 0.08em;
+  padding: 0 28px;
+  border-right: 1px solid var(--border);
+  height: 52px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.nav-logo-strip .r { color: var(--red); }
+
+/* ════════════════════════════════════════
+   LAYOUT / SECTIONS
+════════════════════════════════════════ */
+.section { padding: 100px 0; border-bottom: 1px solid var(--border); }
+.container { max-width: 1140px; margin: 0 auto; padding: 0 48px; }
+.sec-label {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em;
+  color: var(--red); text-transform: uppercase; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.sec-label::before { content: ''; width: 28px; height: 1px; background: var(--red); }
+.sec-title {
+  font-family: var(--display); font-size: clamp(32px, 4.5vw, 58px);
+  font-weight: 400; line-height: 1.05; letter-spacing: 0.03em;
+  margin-bottom: 48px; color: var(--white);
+}
+.sec-title .red { color: var(--red); }
+
+/* Scroll reveal */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .7s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ════════════════════════════════════════
+   TOC
+════════════════════════════════════════ */
+.toc-wrap {
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: 16px; padding: 36px 40px;
+  max-width: 760px; margin: 0 auto;
+}
+.toc-header {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em;
+  color: var(--red); text-transform: uppercase;
+  margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+.toc-list { list-style: none; }
+.toc-item {
+  padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex; align-items: center; gap: 16px;
+}
+.toc-item:last-child { border-bottom: none; }
+.toc-num { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.25); min-width: 24px; }
+.toc-link {
+  font-family: var(--condensed); font-size: 16px; font-weight: 400;
+  letter-spacing: 0.04em; color: var(--white); text-decoration: none;
+  transition: color .2s; flex: 1;
+}
+.toc-link:hover { color: var(--red); }
+.toc-arrow { color: rgba(255,255,255,0.2); font-size: 13px; transition: color .2s, transform .2s; }
+.toc-item:hover .toc-arrow { color: var(--red); transform: translateX(4px); }
+
+/* ════════════════════════════════════════
+   PROSE
+════════════════════════════════════════ */
+.prose { max-width: 760px; margin-bottom: 40px; }
+.prose p { font-size: 16px; line-height: 1.85; color: rgba(240,240,240,0.65); margin-bottom: 20px; }
+.prose p strong { color: var(--white); }
+
+/* ════════════════════════════════════════
+   SCENE BLOCK
+════════════════════════════════════════ */
+.scene-block {
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-left: 3px solid var(--red); border-radius: 0 16px 16px 0;
+  padding: 32px 36px; margin-bottom: 40px;
+  font-size: 17px; line-height: 1.8; color: rgba(240,240,240,0.75);
+  font-style: italic; max-width: 760px;
+}
+
+/* ════════════════════════════════════════
+   RED CALLOUT
+════════════════════════════════════════ */
+.callout-red {
+  background: rgba(232,0,30,0.06); border: 1px solid rgba(232,0,30,0.2);
+  border-radius: 12px; padding: 24px 28px; margin: 0 0 40px;
+  font-size: 15px; line-height: 1.75; color: rgba(240,240,240,0.7);
+  max-width: 760px;
+}
+.callout-red strong { color: var(--red); }
+
+/* ════════════════════════════════════════
+   PAIN GRID
+════════════════════════════════════════ */
+.pain-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 16px; margin-bottom: 48px;
+}
+.pain-card {
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: 16px; padding: 28px 24px;
+  position: relative; overflow: hidden;
+  transition: transform .3s, border-color .3s;
+}
+.pain-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--red); transform: scaleX(0); transform-origin: left;
+  transition: transform .4s ease;
+}
+.pain-card:hover { transform: translateY(-4px); border-color: rgba(232,0,30,0.3); }
+.pain-card:hover::before { transform: scaleX(1); }
+.pain-icon { font-size: 28px; margin-bottom: 14px; display: block; }
+.pain-title { font-family: var(--condensed); font-size: 17px; font-weight: 600; letter-spacing: 0.04em; color: var(--white); margin-bottom: 10px; }
+.pain-desc { font-size: 13px; color: rgba(240,240,240,0.5); line-height: 1.65; }
+
+/* ════════════════════════════════════════
+   STATS GRID
+════════════════════════════════════════ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 60px;
+}
+.stat-card {
+  background: rgba(255,255,255,0.03);
+  padding: 36px 28px;
+  position: relative;
+  overflow: hidden;
+  transition: background .3s;
+}
+.stat-card::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(232,0,30,.07) 0%, transparent 70%);
+  opacity: 0; transition: opacity .4s;
+}
+.stat-card:hover { background: rgba(232,0,30,0.05); }
+.stat-card:hover::after { opacity: 1; }
+.stat-number {
+  font-family: var(--display);
+  font-size: clamp(44px, 5vw, 72px);
+  line-height: 1;
+  color: var(--red);
+  letter-spacing: .02em;
+  display: block;
+  margin-bottom: 6px;
+}
+.stat-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .14em;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.stat-sub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.5;
+}
+
+/* ════════════════════════════════════════
+   VIDEO DEMO
+════════════════════════════════════════ */
+.video-demo {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 60px;
+  position: relative;
+}
+.video-demo-inner {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background:
+    linear-gradient(135deg, rgba(232,0,30,0.04) 0%, transparent 60%),
+    repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(255,255,255,0.012) 30px, rgba(255,255,255,0.012) 31px);
+  padding: 60px 40px;
+  position: relative;
+}
+.video-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.video-label-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: pulse 2.5s infinite;
+}
+.video-play-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.video-play-btn {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  border: 1px solid rgba(232,0,30,0.4);
+  background: rgba(232,0,30,0.1);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--red);
+  text-decoration: none;
+  transition: background .3s, border-color .3s, transform .3s;
+}
+.video-play-btn svg { width: 32px; height: 32px; margin-left: 4px; }
+.video-play-btn:hover {
+  background: rgba(232,0,30,0.2);
+  border-color: var(--red);
+  transform: scale(1.08);
+}
+.video-play-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+}
+.video-demo-footer {
+  position: absolute;
+  bottom: 20px; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 28px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.2);
+}
+.video-demo-tag {
+  color: var(--red);
+  border: 1px solid rgba(232,0,30,0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 9px;
+}
+
+/* ════════════════════════════════════════
+   SUBSECTION TITLE
+════════════════════════════════════════ */
+.subsec-title {
+  font-family: var(--condensed);
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--white);
+  margin-bottom: 40px;
+}
+
+/* ════════════════════════════════════════
+   FLOW STEPS
+════════════════════════════════════════ */
+.flow-steps {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  margin-bottom: 0;
+}
+.flow-step {
+  flex: 1;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 22px;
+  position: relative;
+  transition: border-color .3s, transform .3s;
+}
+.flow-step:hover {
+  border-color: rgba(232,0,30,0.3);
+  transform: translateY(-4px);
+}
+.flow-step-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--red);
+  margin-bottom: 12px;
+}
+.flow-step-icon { font-size: 26px; margin-bottom: 12px; display: block; }
+.flow-step-title {
+  font-family: var(--condensed);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--white);
+  margin-bottom: 8px;
+}
+.flow-step-desc {
+  font-size: 13px;
+  color: rgba(240,240,240,0.45);
+  line-height: 1.6;
+}
+.flow-arrow {
+  color: rgba(232,0,30,0.4);
+  font-size: 20px;
+  padding: 0 12px;
+  margin-top: 52px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .stats-grid { grid-template-columns: repeat(2,1fr); }
+  .flow-steps { flex-direction: column; gap: 12px; }
+  .flow-arrow { display: none; }
+}
+@media (max-width: 600px) {
+  .stats-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) { .pain-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) {
+  .container { padding: 0 20px; }
+  .section { padding: 64px 0; }
+  .hero-name { top: 28px; left: 24px; }
+  .hero-nav { display: none; }
+  .hero-badge { display: none; }
+  .hero-tagline { left: 24px; bottom: 32px; }
+  .hero-socials { right: 24px; bottom: 80px; }
+  body { cursor: auto; }
+  #cursor-dot, #cursor-ring { display: none; }
+  .toc-wrap { padding: 24px; }
+  .sec-title { font-size: 36px; }
+}
+
+/* ════════════════════════════════════════
+   GARAGE GRID
+════════════════════════════════════════ */
+.garage-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 60px;
+}
+.garage-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 22px 24px;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  transition: transform .3s, border-color .3s, background .3s;
+}
+.garage-card:hover { transform: translateY(-6px); border-color: rgba(232,0,30,0.35); background: rgba(232,0,30,0.04); }
+.garage-accent { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform .4s ease; }
+.garage-card:hover .garage-accent { transform: scaleX(1); }
+.garage-flag { font-size: 28px; margin-bottom: 16px; display: block; }
+.garage-num { font-family: var(--display); font-size: 64px; color: rgba(255,255,255,0.04); line-height: 1; position: absolute; top: 16px; right: 16px; letter-spacing: .02em; }
+.garage-country { font-family: var(--mono); font-size: 9px; letter-spacing: .2em; color: var(--red); text-transform: uppercase; margin-bottom: 8px; }
+.garage-title { font-family: var(--display); font-size: 26px; letter-spacing: .04em; color: var(--white); line-height: 1.1; margin-bottom: 16px; }
+.garage-cars { font-size: 11px; color: rgba(240,240,240,0.4); line-height: 1.6; margin-bottom: 16px; }
+.garage-tag { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; color: rgba(255,255,255,0.2); text-transform: uppercase; padding-top: 14px; border-top: 1px solid var(--border); }
+
+/* ════════════════════════════════════════
+   3D SHOWCASE
+════════════════════════════════════════ */
+.showcase-3d { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+.showcase-label { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; color: rgba(255,255,255,0.3); text-transform: uppercase; display: flex; align-items: center; gap: 8px; padding: 18px 28px; border-bottom: 1px solid var(--border); }
+.showcase-label-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); animation: pulse 2.5s infinite; }
+.showcase-inner { display: grid; grid-template-columns: 1fr 320px; min-height: 520px; }
+.canvas-wrap { position: relative; background: radial-gradient(ellipse 70% 65% at 50% 55%, #2a2d3a 0%, #1a1c26 40%, #0e0f16 75%, #08090e 100%); border-right: 1px solid var(--border); }
+.canvas-wrap::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 55% at 50% 50%, transparent 30%, rgba(8,9,14,0.55) 100%); pointer-events: none; z-index: 2; }
+#bmwCanvas { width: 100%; height: 520px; display: block; outline: none; }
+.canvas-loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: #0a0a0c; transition: opacity .5s; }
+.canvas-loader.hidden { opacity: 0; pointer-events: none; }
+.canvas-loader-ring { width: 40px; height: 40px; border: 2px solid rgba(232,0,30,0.2); border-top-color: var(--red); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.canvas-loader-text { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; color: rgba(255,255,255,0.3); text-transform: uppercase; }
+.canvas-corner { position: absolute; width: 16px; height: 16px; pointer-events: none; z-index: 10; }
+.canvas-corner.tl { top: 12px; left: 12px; border-top: 1px solid rgba(232,0,30,0.5); border-left: 1px solid rgba(232,0,30,0.5); }
+.canvas-corner.tr { top: 12px; right: 12px; border-top: 1px solid rgba(232,0,30,0.5); border-right: 1px solid rgba(232,0,30,0.5); }
+.canvas-corner.bl { bottom: 12px; left: 12px; border-bottom: 1px solid rgba(232,0,30,0.5); border-left: 1px solid rgba(232,0,30,0.5); }
+.canvas-corner.br { bottom: 12px; right: 12px; border-bottom: 1px solid rgba(232,0,30,0.5); border-right: 1px solid rgba(232,0,30,0.5); }
+.showcase-info { padding: 36px 28px; display: flex; flex-direction: column; }
+.showcase-car-label { font-family: var(--mono); font-size: 9px; letter-spacing: .18em; color: var(--red); text-transform: uppercase; margin-bottom: 8px; }
+.showcase-car-name { font-family: var(--display); font-size: 36px; letter-spacing: .06em; color: var(--white); line-height: 1; margin-bottom: 6px; }
+.showcase-car-price { font-family: var(--condensed); font-size: 14px; letter-spacing: .06em; color: rgba(232,0,30,0.8); margin-bottom: 28px; }
+.showcase-specs { display: flex; margin-bottom: 28px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.showcase-spec { flex: 1; padding: 14px 12px; text-align: center; border-right: 1px solid var(--border); }
+.showcase-spec:last-child { border-right: none; }
+.showcase-spec-val { font-family: var(--display); font-size: 22px; color: var(--red); letter-spacing: .04em; line-height: 1; margin-bottom: 4px; }
+.showcase-spec-key { font-family: var(--mono); font-size: 8px; letter-spacing: .1em; color: rgba(255,255,255,0.25); text-transform: uppercase; }
+.showcase-desc { font-size: 13px; line-height: 1.65; color: rgba(240,240,240,0.45); margin-bottom: 28px; flex: 1; }
+.showcase-cta { display: block; font-family: var(--condensed); font-size: 13px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--white); text-decoration: none; border: 1px solid rgba(232,0,30,0.4); padding: 12px 20px; border-radius: 8px; background: rgba(232,0,30,0.06); transition: background .3s, border-color .3s; margin-bottom: 16px; text-align: center; }
+.showcase-cta:hover { background: rgba(232,0,30,0.14); border-color: var(--red); }
+.showcase-hint { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; color: rgba(255,255,255,0.2); text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.showcase-hint svg { opacity: .4; flex-shrink: 0; }
+@media (max-width: 900px) {
+  .garage-grid { grid-template-columns: repeat(2, 1fr); }
+  .showcase-inner { grid-template-columns: 1fr; }
+  .canvas-wrap { border-right: none; border-bottom: 1px solid var(--border); }
+}
+@media (max-width: 600px) {
+  .garage-grid { grid-template-columns: 1fr; }
+  #bmwCanvas { height: 280px; }
+}
+
+/* ════════════════════════════════════════
+   AI TOOLS
+════════════════════════════════════════ */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+.tool-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px 28px;
+  position: relative;
+  overflow: hidden;
+  transition: transform .3s, border-color .3s, background .3s;
+}
+.tool-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--tc, var(--red));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .4s ease;
+}
+.tool-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.045);
+}
+.tool-card:hover::before { transform: scaleX(1); }
+
+.tool-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.tool-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+.tool-icon { font-size: 28px; }
+.tool-title {
+  font-family: var(--display);
+  font-size: 28px;
+  letter-spacing: .04em;
+  color: var(--white);
+  margin-bottom: 12px;
+  line-height: 1;
+}
+.tool-desc {
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(240,240,240,0.5);
+  margin-bottom: 20px;
+}
+.tool-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.tool-chip {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,0.4);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.tool-tech {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: rgba(255,255,255,0.2);
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Formula block (CALC) */
+.tool-formula {
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+.formula-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+  color: rgba(240,240,240,0.45);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.formula-row:last-child { border-bottom: none; }
+.formula-val { font-family: var(--mono); font-size: 12px; color: rgba(240,240,240,0.7); }
+.formula-val.red { color: var(--red); }
+
+/* Filter tags (PICK) */
+.tool-filters { margin-bottom: 20px; }
+.filter-group { margin-bottom: 12px; }
+.filter-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .14em;
+  color: rgba(255,255,255,0.25);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.filter-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.3);
+  cursor: default;
+}
+.filter-tag.active {
+  border-color: rgba(245,158,11,0.5);
+  color: #f59e0b;
+  background: rgba(245,158,11,0.08);
+}
+
+/* Bottom callout */
+.tools-callout {
+  background: rgba(232,0,30,0.05);
+  border: 1px solid rgba(232,0,30,0.15);
+  border-radius: 14px;
+  padding: 24px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.tools-callout-icon { font-size: 28px; flex-shrink: 0; }
+.tools-callout-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(240,240,240,0.6);
+}
+.tools-callout-text strong { color: var(--white); }
+
+@media (max-width: 900px) { .tools-grid { grid-template-columns: 1fr; } }
+
+/* ════════════════════════════════════════
+   ARCHITECTURE
+════════════════════════════════════════ */
+.wf-wrap {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px 20px;
+  margin-bottom: 60px;
+}
+.wf-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .15em;
+  color: rgba(255,255,255,0.25);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.wf-scroll { overflow-x: auto; }
+.wf-svg { width: 100%; min-width: 700px; height: auto; display: block; }
+
+.arch-wrap {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 60px;
+  align-items: start;
+}
+.orbital-wrap { flex-shrink: 0; }
+.orbital-svg { width: 100%; max-width: 380px; height: auto; display: block; }
+
+.arch-list { display: flex; flex-direction: column; }
+.arch-item {
+  display: flex;
+  gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.arch-item:last-child { border-bottom: none; }
+.arch-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.arch-item-name {
+  font-family: var(--condensed);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--white);
+  margin-bottom: 5px;
+}
+.arch-item-desc {
+  font-size: 13px;
+  color: rgba(240,240,240,0.45);
+  line-height: 1.65;
+}
+
+@media (max-width: 900px) {
+  .arch-wrap { grid-template-columns: 1fr; }
+  .orbital-svg { max-width: 300px; margin: 0 auto; }
+}
+
+/* ════════════════════════════════════════
+   TEAM
+════════════════════════════════════════ */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+.team-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: transform .3s, border-color .3s;
+}
+.team-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(232,0,30,0.25);
+}
+.team-card-inner { display: flex; flex-direction: column; height: 100%; }
+
+.team-photo-wrap {
+  position: relative;
+  height: 260px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.team-photo {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+}
+.team-photo-placeholder {
+  font-family: var(--display);
+  font-size: 48px;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,0.12);
+}
+.team-role-tag {
+  position: absolute;
+  top: 16px; left: 16px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .18em;
+  color: var(--red);
+  background: rgba(13,13,15,0.85);
+  border: 1px solid rgba(232,0,30,0.3);
+  padding: 4px 10px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+.team-info { padding: 24px 22px; flex: 1; display: flex; flex-direction: column; }
+.team-name {
+  font-family: var(--display);
+  font-size: 26px;
+  letter-spacing: .04em;
+  color: var(--white);
+  margin-bottom: 4px;
+  line-height: 1;
+}
+.team-position {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .14em;
+  color: var(--red);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.team-desc {
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(240,240,240,0.45);
+  margin-bottom: 20px;
+  flex: 1;
+}
+.team-stats {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.team-stat {
+  flex: 1;
+  padding: 12px 14px;
+  border-right: 1px solid var(--border);
+  text-align: center;
+}
+.team-stat:last-child { border-right: none; }
+.team-stat-num {
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--red);
+  letter-spacing: .04em;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.team-stat-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: .08em;
+  color: rgba(255,255,255,0.25);
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+.team-links { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.team-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,0.4);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color .2s;
+}
+.team-link:hover { color: var(--red); }
+.team-link svg { flex-shrink: 0; opacity: .6; }
+.team-link-muted {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,0.2);
+  text-transform: uppercase;
+}
+
+/* BWA Banner */
+.bwa-banner {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  border-radius: 0 14px 14px 0;
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 40px;
+  align-items: center;
+}
+.bwa-label {
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: .08em;
+  color: var(--white);
+  margin-bottom: 4px;
+}
+.bwa-sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .14em;
+  color: var(--red);
+  text-transform: uppercase;
+}
+.bwa-banner-right {
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(240,240,240,0.5);
+}
+.bwa-banner-right strong { color: var(--white); }
+
+/* ════════════════════════════════════════
+   RESULTS
+════════════════════════════════════════ */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+.result-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px 26px;
+  position: relative;
+  overflow: hidden;
+  transition: transform .3s, border-color .3s;
+}
+.result-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.1); }
+.result-accent {
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+}
+.result-icon { font-size: 28px; display: block; margin-bottom: 16px; }
+.result-value {
+  font-family: var(--display);
+  font-size: clamp(52px, 6vw, 80px);
+  color: var(--white);
+  line-height: 1;
+  letter-spacing: .02em;
+  margin-bottom: 2px;
+}
+.result-unit {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .14em;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  min-height: 16px;
+}
+.result-label {
+  font-family: var(--condensed);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--white);
+  margin-bottom: 10px;
+}
+.result-desc {
+  font-size: 13px;
+  color: rgba(240,240,240,0.45);
+  line-height: 1.65;
+}
+
+/* Horizontal metrics */
+.metrics-row {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 0;
+  margin-bottom: 48px;
+  overflow: hidden;
+}
+.metric-item {
+  flex: 1;
+  text-align: center;
+  padding: 0 20px;
+}
+.metric-num {
+  font-family: var(--display);
+  font-size: 40px;
+  color: var(--white);
+  letter-spacing: .04em;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.metric-num.red { color: var(--red); }
+.metric-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .12em;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+.metric-divider {
+  width: 1px;
+  height: 48px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* Quote */
+.result-quote {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 36px 40px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  position: relative;
+}
+.result-quote-line {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--red);
+  border-radius: 0 0 0 16px;
+}
+.result-quote-text {
+  font-family: 'Barlow', sans-serif;
+  font-size: 20px;
+  font-style: italic;
+  line-height: 1.65;
+  color: rgba(240,240,240,0.75);
+  font-weight: 300;
+}
+.result-quote-author {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .14em;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+  .results-grid { grid-template-columns: 1fr; }
+  .metrics-row { flex-wrap: wrap; gap: 0; }
+  .metric-item { min-width: 50%; padding: 16px; }
+  .metric-divider { display: none; }
+}
+
+/* ════════════════════════════════════════
+   BEFORE / AFTER TABLE
+════════════════════════════════════════ */
+.compare-wrap {
+  margin-bottom: 40px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.compare-table thead th {
+  padding: 16px 24px;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.col-param { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.35); width: 22%; }
+.col-bad   { background: rgba(232,0,30,0.08);    color: var(--red); width: 39%; }
+.col-good  { background: rgba(34,197,94,0.08);   color: #22c55e;   width: 39%; }
+
+.compare-table tbody tr {
+  border-top: 1px solid rgba(255,255,255,0.04);
+  transition: background .2s;
+}
+.compare-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.compare-table td {
+  padding: 14px 24px;
+  font-size: 13px;
+  vertical-align: middle;
+}
+.compare-table td:first-child {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.015);
+}
+.bad  { color: rgba(232,0,30,0.75); }
+.good { color: rgba(34,197,94,0.9); }
+
+/* Verdict */
+.verdict-block {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.verdict-left, .verdict-right {
+  padding: 32px 28px;
+}
+.verdict-left  { background: rgba(232,0,30,0.04); border-right: 1px solid var(--border); }
+.verdict-right { background: rgba(34,197,94,0.04); }
+.verdict-vs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  font-family: var(--display);
+  font-size: 28px;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.02);
+  border-right: 1px solid var(--border);
+}
+.verdict-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .16em;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.bad-score  {
+  font-family: var(--display);
+  font-size: 26px;
+  letter-spacing: .04em;
+  color: var(--red);
+  margin-bottom: 12px;
+}
+.good-score {
+  font-family: var(--display);
+  font-size: 26px;
+  letter-spacing: .04em;
+  color: #22c55e;
+  margin-bottom: 12px;
+}
+.verdict-desc {
+  font-size: 13px;
+  color: rgba(240,240,240,0.45);
+  line-height: 1.65;
+}
+
+@media (max-width: 768px) {
+  .verdict-block { grid-template-columns: 1fr; }
+  .verdict-left { border-right: none; border-bottom: 1px solid var(--border); }
+  .verdict-vs { padding: 16px; border-right: none; border-bottom: 1px solid var(--border); }
+  .compare-table td, .compare-table th { padding: 10px 14px; font-size: 12px; }
+}
+
+@media (max-width: 900px) {
+  .team-grid { grid-template-columns: 1fr; }
+  .bwa-banner { grid-template-columns: 1fr; gap: 16px; }
+}
+
+/* ════════════════════════════════════════
+   STACK
+════════════════════════════════════════ */
+.stack-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.stack-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: transform .3s, border-color .3s;
+}
+.stack-card:hover { transform: translateY(-4px); border-color: rgba(232,0,30,0.25); }
+.stack-card::before {
+  content: '';
+  position: absolute; top:0; left:0; right:0; height:2px;
+  background: var(--red);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .4s;
+}
+.stack-card:hover::before { transform: scaleX(1); }
+.stack-icon { font-size: 28px; margin-bottom: 12px; display: block; }
+.stack-name { font-family: var(--condensed); font-size: 17px; font-weight: 600; letter-spacing: .04em; color: var(--white); margin-bottom: 8px; }
+.stack-desc { font-size: 12px; color: rgba(240,240,240,0.4); line-height: 1.6; margin-bottom: 16px; }
+.stack-tag { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; color: var(--red); text-transform: uppercase; }
+
+/* ════════════════════════════════════════
+   COST
+════════════════════════════════════════ */
+.cost-wrap { margin-bottom: 32px; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); }
+.cost-table { width: 100%; border-collapse: collapse; }
+.cost-table thead th { padding: 14px 24px; text-align: left; background: rgba(255,255,255,0.03); font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,0.35); }
+.cost-table tbody tr { border-top: 1px solid rgba(255,255,255,0.04); transition: background .2s; }
+.cost-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.cost-table td { padding: 14px 24px; font-size: 13px; color: rgba(240,240,240,0.6); vertical-align: middle; }
+.cost-val { font-family: var(--mono); font-size: 14px; color: var(--red) !important; font-weight: 600; white-space: nowrap; }
+.cost-role { color: rgba(240,240,240,0.4) !important; font-size: 12px; }
+.cost-table tfoot td { padding: 16px 24px; background: rgba(232,0,30,0.06); border-top: 1px solid rgba(232,0,30,0.2); }
+.cost-total { font-family: var(--display) !important; font-size: 26px !important; color: var(--red) !important; letter-spacing: .04em; }
+.cost-role-total { color: rgba(240,240,240,0.5) !important; font-size: 12px; }
+
+.cost-compare { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.cost-compare-item { padding: 28px 24px; text-align: center; }
+.bad-bg  { background: rgba(232,0,30,0.04); }
+.good-bg { background: rgba(34,197,94,0.04); }
+.cost-compare-vs { display: flex; align-items: center; justify-content: center; padding: 0 20px; font-family: var(--display); font-size: 22px; color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.02); border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+.cost-compare-label { font-family: var(--mono); font-size: 9px; letter-spacing: .14em; color: rgba(255,255,255,0.3); text-transform: uppercase; margin-bottom: 8px; }
+.cost-compare-num { font-family: var(--display); font-size: 40px; letter-spacing: .04em; line-height: 1; margin-bottom: 8px; }
+.cost-compare-desc { font-size: 12px; color: rgba(240,240,240,0.35); line-height: 1.5; }
+
+/* ════════════════════════════════════════
+   GLOSSARY
+════════════════════════════════════════ */
+.glossary-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 28px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer !important;
+  pointer-events: all !important;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .14em;
+  color: rgba(255,255,255,0.5); text-transform: uppercase;
+  transition: background .2s, border-color .2s;
+  user-select: none;
+}
+.glossary-toggle:hover { background: rgba(255,255,255,0.05); border-color: rgba(232,0,30,0.3); }
+.glossary-toggle.open { color: var(--red); border-color: rgba(232,0,30,0.3); }
+.glossary-arrow { transition: transform .3s; flex-shrink: 0; }
+.glossary-toggle.open .glossary-arrow { transform: rotate(180deg); }
+
+.glossary-body { display: none; padding-top: 16px; }
+.glossary-body.visible { display: block; }
+.glossary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.glossary-item { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; padding: 20px 20px; }
+.glossary-term { font-family: var(--condensed); font-size: 16px; font-weight: 600; letter-spacing: .04em; color: var(--red); margin-bottom: 8px; }
+.glossary-def { font-size: 13px; color: rgba(240,240,240,0.45); line-height: 1.65; }
+
+/* ════════════════════════════════════════
+   CTA / CONTACT
+════════════════════════════════════════ */
+.cta-wrap { text-align: center; padding: 60px 0; }
+.cta-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; color: var(--red); text-transform: uppercase; margin-bottom: 20px; }
+.cta-title { font-family: var(--display); font-size: clamp(42px, 6vw, 80px); line-height: 1.05; letter-spacing: .03em; color: var(--white); margin-bottom: 24px; font-style: italic; }
+.cta-title .red { color: var(--red); font-style: italic; }
+.cta-sub { font-size: 16px; line-height: 1.75; color: rgba(240,240,240,0.55); max-width: 600px; margin: 0 auto 48px; }
+.cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.cta-btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--condensed); font-size: 14px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; text-decoration: none;
+  padding: 14px 28px; border-radius: 8px;
+  transition: transform .25s, opacity .25s;
+}
+.cta-btn:hover { transform: translateY(-2px); opacity: .9; }
+.cta-btn-red  { background: var(--red); color: #fff; }
+.cta-btn-gold { background: rgba(201,168,76,0.15); color: #c9a84c; border: 1px solid rgba(201,168,76,0.4); }
+.cta-btn-dark { background: rgba(255,255,255,0.05); color: var(--white); border: 1px solid var(--border); }
+
+/* ════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════ */
+.site-footer {
+  background: rgba(0,0,0,0.4);
+  border-top: 1px solid var(--border);
+  padding: 36px 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 20px;
+}
+.footer-left { display: flex; align-items: center; gap: 14px; }
+.footer-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(232,0,30,0.15);
+  border: 2px solid rgba(232,0,30,0.35);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; color: var(--red);
+  letter-spacing: .06em; flex-shrink: 0;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center top;
+}
+.footer-name { font-size: 14px; font-weight: 600; color: var(--white); }
+.footer-role { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; color: rgba(255,255,255,0.3); text-transform: uppercase; margin-top: 2px; }
+.footer-links { display: flex; gap: 24px; }
+.footer-link { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; color: rgba(255,255,255,0.35); text-decoration: none; text-transform: uppercase; transition: color .2s; }
+.footer-link:hover { color: var(--red); }
+.footer-copy { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: rgba(255,255,255,0.2); }
+
+@media (max-width: 900px) {
+  .stack-grid { grid-template-columns: repeat(2,1fr); }
+  .glossary-grid { grid-template-columns: 1fr; }
+  .cost-compare { grid-template-columns: 1fr; }
+  .cost-compare-vs { padding: 12px; border: none; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .site-footer { flex-direction: column; align-items: flex-start; padding: 28px 24px; }
+}
+@media (max-width: 600px) {
+  .stack-grid { grid-template-columns: 1fr; }
+  .cta-buttons { flex-direction: column; align-items: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+
+<!-- ══════════════════════════════════════
+     HERO
+══════════════════════════════════════ -->
+<section id="hero">
+
+  <!-- Video background -->
+  <div class="hero-video-wrap">
+    <video id="hero-video" autoplay muted loop playsinline preload="auto"
+      src="https://raw.githubusercontent.com/bogdangodluk22-art/AutoSmart_3D/main/hero-bg.mp4">
+    </video>
+  </div>
+
+  <!-- Overlays -->
+  <div class="hero-overlay"></div>
+  <div class="hero-overlay-top"></div>
+  <div class="hero-overlay-bottom"></div>
+  <div class="hero-carbon"></div>
+
+  <!-- Scanline -->
+  <div class="scanline"></div>
+
+  <!-- Corner accents -->
+  <div class="corner-tl"></div>
+  <div class="corner-br"></div>
+
+  <!-- NAME (top left) -->
+  <div class="hero-name fade-in d1">
+    <span class="hero-name-line">AUTO<span class="red">SMART</span></span>
+    <span class="hero-name-sub">БОГДАН ГОДЛЮК</span>
+  </div>
+
+  <!-- NAV (top right) -->
+  <nav class="hero-nav fade-in d2">
+    <a href="#toc">Зміст</a>
+    <a href="#problem">Проблема</a>
+    <a href="#product">Продукт</a>
+    <a href="#garages">Гаражі</a>
+    <a href="#tools">AI Інструменти</a>
+    <a href="#results">Результати</a>
+  </nav>
+
+  <!-- STATUS BADGE (mid right) -->
+  <div class="hero-badge fade-in d3">
+    <span class="badge-dot"></span>
+    <span class="badge-text">AI Architect · Online</span>
+  </div>
+
+  <!-- ROLES (bottom left) -->
+  <div class="hero-tagline fade-in d4">
+    <span class="hero-tagline-roles">INNOVATOR · AI ARCHITECT · FOUNDER</span>
+  </div>
+
+  <!-- SCROLL HINT (bottom center) -->
+  <div class="scroll-hint fade-in d5">
+    <div class="scroll-line"></div>
+    <span class="scroll-text">Scroll</span>
+  </div>
+
+  <!-- SOCIALS (bottom right) -->
+  <div class="hero-socials fade-in d4">
+    <a href="https://t.me/bohdanhodliuk" target="_blank" class="social-link">
+      <span class="social-label">Telegram</span>
+      <svg class="social-icon" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+    </a>
+    <a href="https://www.youtube.com/@bohdan.hodliuk" target="_blank" class="social-link">
+      <span class="social-label">YouTube</span>
+      <svg class="social-icon" viewBox="0 0 24 24"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+    </a>
+    <a href="https://www.instagram.com/bohdan_new" target="_blank" class="social-link">
+      <span class="social-label">Instagram</span>
+      <svg class="social-icon" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+    </a>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     TICKER STRIP
+══════════════════════════════════════ -->
+<div class="ticker-wrap">
+  <div class="ticker-inner">
+    <span class="ticker-item"><span>●</span> AutoSmart — Find Your Drive</span>
+    <span class="ticker-item"><span>●</span> 4 Гаражі · 20 Авто · AI 24/7</span>
+    <span class="ticker-item"><span>●</span> Babylon.js 3D Engine</span>
+    <span class="ticker-item"><span>●</span> GPT-4o Консультант</span>
+    <span class="ticker-item"><span>●</span> Перша в Україні 3D Платформа</span>
+    <span class="ticker-item"><span>●</span> Germany · Japan · USA · China</span>
+    <span class="ticker-item"><span>●</span> Built with AI · 2026</span>
+    <!-- duplicate for seamless loop -->
+    <span class="ticker-item"><span>●</span> AutoSmart — Find Your Drive</span>
+    <span class="ticker-item"><span>●</span> 4 Гаражі · 20 Авто · AI 24/7</span>
+    <span class="ticker-item"><span>●</span> Babylon.js 3D Engine</span>
+    <span class="ticker-item"><span>●</span> GPT-4o Консультант</span>
+    <span class="ticker-item"><span>●</span> Перша в Україні 3D Платформа</span>
+    <span class="ticker-item"><span>●</span> Germany · Japan · USA · China</span>
+    <span class="ticker-item"><span>●</span> Built with AI · 2026</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     STICKY NAV STRIP
+══════════════════════════════════════ -->
+<div id="nav-strip">
+  <div class="nav-strip-inner" id="nav-inner">
+    <span class="nav-logo-strip">AUTO<span class="r">SMART</span></span>
+    <a href="#toc"      class="nav-item">Зміст</a>
+    <a href="#problem"  class="nav-item">Проблема</a>
+    <a href="#product"  class="nav-item">Продукт</a>
+    <a href="#garages"  class="nav-item">Гаражі</a>
+    <a href="#tools"    class="nav-item">AI Інструменти</a>
+    <a href="#arch"     class="nav-item">Архітектура</a>
+    <a href="#team"     class="nav-item">Команда</a>
+    <a href="#results"  class="nav-item">Результати</a>
+    <a href="#before"   class="nav-item">До / Після</a>
+    <a href="#stack"    class="nav-item">Стек</a>
+    <a href="#cost"     class="nav-item">Вартість</a>
+    <a href="#glossary" class="nav-item">Словник</a>
+    <a href="#contact"  class="nav-item">Контакт</a>
+    <!-- duplicate for ticker loop -->
+    <span class="nav-logo-strip">AUTO<span class="r">SMART</span></span>
+    <a href="#toc"      class="nav-item">Зміст</a>
+    <a href="#problem"  class="nav-item">Проблема</a>
+    <a href="#product"  class="nav-item">Продукт</a>
+    <a href="#garages"  class="nav-item">Гаражі</a>
+    <a href="#tools"    class="nav-item">AI Інструменти</a>
+    <a href="#arch"     class="nav-item">Архітектура</a>
+    <a href="#team"     class="nav-item">Команда</a>
+    <a href="#results"  class="nav-item">Результати</a>
+    <a href="#before"   class="nav-item">До / Після</a>
+    <a href="#stack"    class="nav-item">Стек</a>
+    <a href="#cost"     class="nav-item">Вартість</a>
+    <a href="#glossary" class="nav-item">Словник</a>
+    <a href="#contact"  class="nav-item">Контакт</a>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TOC
+══════════════════════════════════════ -->
+<section class="section" id="toc">
+  <div class="container">
+    <div class="sec-label reveal">НАВІГАЦІЯ</div>
+    <h2 class="sec-title reveal">Зміст <span class="red">статті</span></h2>
+
+    <div class="toc-wrap reveal">
+      <div class="toc-header">РОЗДІЛИ</div>
+      <ul class="toc-list">
+        <li class="toc-item">
+          <span class="toc-num">01</span>
+          <a href="#problem" class="toc-link">Проблема — яку я вирішив</a>
+          <span class="toc-arrow">→</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-num">02</span>
+          <a href="#product" class="toc-link">AutoSmart — що це за платформа</a>
+          <span class="toc-arrow">→</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-num">03</span>
+          <a href="#garages" class="toc-link">4 Гаражі світу — 3D колекція</a>
+          <span class="toc-arrow">→</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-num">04</span>
+          <a href="#tools" class="toc-link">AI Інструменти — 4 модулі</a>
+          <span class="toc-arrow">→</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-num">05</span>
+          <a href="#arch" class="toc-link">Як це влаштовано всередині</a>
+          <span class="toc-arrow">→</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-num">06</span>
+          <a href="#team" class="toc-link">Команда проекту</a>
+          <span class="toc-arrow">→</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-num">07</span>
+          <a href="#results" class="toc-link">Результати та можливості</a>
+          <span class="toc-arrow">→</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-num">08</span>
+          <a href="#before" class="toc-link">До і після — порівняльна таблиця</a>
+          <span class="toc-arrow">→</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-num">09</span>
+          <a href="#stack" class="toc-link">Технічний стек</a>
+          <span class="toc-arrow">→</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-num">10</span>
+          <a href="#cost" class="toc-link">Вартість системи</a>
+          <span class="toc-arrow">→</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-num">11</span>
+          <a href="#glossary" class="toc-link">Словник термінів</a>
+          <span class="toc-arrow">→</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     PROBLEM
+══════════════════════════════════════ -->
+<section class="section" id="problem">
+  <div class="container">
+    <div class="sec-label reveal">01 · ПРОБЛЕМА</div>
+    <h2 class="sec-title reveal">Авто-рітейл у 2026 —<br>це все ще <span class="red">сайт з фотками</span></h2>
+
+    <div class="prose reveal">
+      <p>Ти знайшов авто своєї мрії. Клікнув на сайт дилера. Побачив 8 фотографій з однакових кутів, таблицю характеристик і кнопку «Залишити заявку». Закрив вкладку.</p>
+      <p>Це відбувається <strong>мільйони разів щодня</strong>. Не тому що покупці не хочуть купувати. А тому що жоден сайт не дає відчути машину через екран.</p>
+    </div>
+
+    <!-- Scene block -->
+    <div class="scene-block reveal">
+      П'ятниця, 22:30. Ти гортаєш 12 сайтів авто-дилерів поспіль. Скрізь однакові фото на білому фоні, таблиця з літрами та кіловатами, і менеджер який «перетелефонує завтра». Ти хочеш відчути машину — але через екран це неможливо. Зрештою закриваєш все і йдеш спати. Рішення так і не прийнято.
+    </div>
+
+    <div class="prose reveal">
+      <p>Це не питання бюджету. І не питання бажання. <strong>Це питання досвіду.</strong></p>
+      <p>Люди купують авто за €50,000 — але обирають їх за 30 секунд на сайті. І якщо за ці 30 секунд нічого не зачепило — вони пішли до конкурента.</p>
+    </div>
+
+    <!-- Red callout -->
+    <div class="callout-red reveal">
+      <strong>73% відвідувачів авто-сайтів</strong> залишають сторінку без контакту з дилером. Не через ціну — через відсутність емоції та досвіду взаємодії з продуктом.
+    </div>
+
+    <div class="prose reveal">
+      <p>Проблема системна. Традиційний онлайн-шоурум — це PDF-каталог перенесений в інтернет. Жодної інтерактивності. Жодного AI. Жодного відчуття що ти тримаєш кермо.</p>
+    </div>
+
+    <!-- Three pain points -->
+    <div class="pain-grid reveal">
+      <div class="pain-card">
+        <div class="pain-icon">📸</div>
+        <div class="pain-title">2D фото замість досвіду</div>
+        <div class="pain-desc">8 знімків з одного ракурсу не замінять 360° огляд. Клієнт не відчуває машину — він дивиться на неї як на картинку в каталозі.</div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">📞</div>
+        <div class="pain-title">Менеджер «перетелефонує»</div>
+        <div class="pain-desc">Питання о 23:00 залишається без відповіді до ранку. А вранці клієнт вже у конкурента. AI-консультант 24/7 — не розкіш, а необхідність.</div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">🧮</div>
+        <div class="pain-title">Вартість імпорту — окремий квест</div>
+        <div class="pain-desc">Акциз, мито, ПДВ, доставка — покупець мусить рахувати це сам або дзвонити брокеру. Більшість просто не доходять до цього кроку.</div>
+      </div>
+    </div>
+
+    <div class="prose reveal">
+      <p>Я вирішив побудувати те чого не існувало в Україні. <strong>Не черговий сайт з авто.</strong> А повноцінний інтерактивний 3D шоурум де клієнт відчуває машину до того як поїхав до салону. З AI-консультантом який відповідає миттєво. З калькулятором імпорту прямо в інтерфейсі. З колекцією авто з чотирьох країн світу.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     PRODUCT
+══════════════════════════════════════ -->
+<section class="section" id="product">
+  <div class="container">
+
+    <div class="sec-label reveal">02 · ПРОДУКТ</div>
+    <h2 class="sec-title reveal">AutoSmart — твій<br>персональний <span class="red">3D шоурум</span></h2>
+
+    <div class="prose reveal">
+      <p>Не черговий сайт з авто. Повноцінна інтерактивна платформа де кожна машина — це живий досвід. Ти обираєш гараж, завантажуєш 3D-модель, крутиш авто на 360°, питаєш AI про будь-яку деталь і одразу рахуєш вартість імпорту. Все в одному місці.</p>
+      <p>Побудовано як єдиний HTML-файл (~240 KB) без фреймворків. Це не компроміс — це свідоме архітектурне рішення для максимальної швидкості та контролю над кожним пікселем.</p>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stats-grid reveal">
+      <div class="stat-card">
+        <span class="stat-number" data-target="4">0</span>
+        <div class="stat-label">ГАРАЖІ СВІТУ</div>
+        <div class="stat-sub">Німеччина · Японія · США · Китай</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" data-target="20">0</span>
+        <div class="stat-label">ПРЕМІАЛЬНИХ АВТО</div>
+        <div class="stat-sub">3D-моделі з Draco-стисненням, 2–5 MB кожна</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" data-target="4">0</span>
+        <div class="stat-label">AI ІНСТРУМЕНТИ</div>
+        <div class="stat-sub">INFO · COMP · CALC · PICK — усі в реальному часі</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" data-target="240">0</span>
+        <div class="stat-label">KB ВЕСЬ ПРОДУКТ</div>
+        <div class="stat-sub">Без фреймворків. Один файл. Нативний JS/CSS</div>
+      </div>
+    </div>
+
+    <!-- VIDEO DEMO -->
+    <div class="video-demo reveal">
+      <div class="video-demo-inner">
+        <div class="video-label">
+          <span class="video-label-dot"></span>
+          DEMO · AUTOSMART PLATFORM
+        </div>
+        <div class="video-play-wrap">
+          <a href="https://builtwithai.pro/autosmart/" target="_blank" class="video-play-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </a>
+          <div class="video-play-hint">Відкрити платформу</div>
+        </div>
+        <div class="video-demo-footer">
+          <span>builtwithai.pro/autosmart</span>
+          <span class="video-demo-tag">LIVE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLIENT EXPERIENCE FORMULA -->
+    <div class="sec-label reveal" style="margin-top:80px;">КЛІЄНТСЬКИЙ ДОСВІД</div>
+    <h3 class="subsec-title reveal">Як це відчуває людина</h3>
+
+    <div class="flow-steps reveal">
+      <div class="flow-step">
+        <div class="flow-step-num">01</div>
+        <div class="flow-step-icon">🌍</div>
+        <div class="flow-step-title">Обирає гараж</div>
+        <div class="flow-step-desc">Чотири країни — чотири авто-культури. Кожен гараж має свою атмосферу, фон і характер.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">02</div>
+        <div class="flow-step-icon">🚗</div>
+        <div class="flow-step-title">Дивиться 3D</div>
+        <div class="flow-step-desc">Babylon.js завантажує GLB-модель. Авто обертається, підсвічується, живе — не картинка.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">03</div>
+        <div class="flow-step-icon">🤖</div>
+        <div class="flow-step-title">Питає AI</div>
+        <div class="flow-step-desc">GPT-4o відповідає за 2–3 секунди. Будь-яке питання про авто — без очікування менеджера.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-step-num">04</div>
+        <div class="flow-step-icon">✅</div>
+        <div class="flow-step-title">Приймає рішення</div>
+        <div class="flow-step-desc">Порівняв, порахував вартість імпорту, обрав — і вже знає що хоче до першого дзвінка дилеру.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════
+     GARAGES
+══════════════════════════════════════ -->
+<section class="section" id="garages">
+  <div class="container">
+
+    <div class="sec-label reveal">03 · ГАРАЖІ СВІТУ</div>
+    <h2 class="sec-title reveal">4 країни.<br><span class="red">4 авто-культури.</span><br>20 машин.</h2>
+
+    <div class="prose reveal">
+      <p>Кожен гараж — окремий світ. Німецька точність, японська досконалість, американська потужність, китайські технології. Ти не просто обираєш авто — ти обираєш філософію руху.</p>
+    </div>
+
+    <!-- GARAGE CARDS GRID -->
+    <div class="garage-grid reveal">
+
+      <div class="garage-card" data-garage="de">
+        <div class="garage-flag">🇩🇪</div>
+        <div class="garage-num">01</div>
+        <div class="garage-country">GERMANY</div>
+        <div class="garage-title">Німецька<br>класика</div>
+        <div class="garage-cars">Porsche 911 · BMW M5 · Mercedes AMG GT · G-Class · Audi R8</div>
+        <div class="garage-tag">ТОЧНІСТЬ · ІНЖИНІРИНГ · LEGACY</div>
+        <div class="garage-accent"></div>
+      </div>
+
+      <div class="garage-card" data-garage="jp">
+        <div class="garage-flag">🇯🇵</div>
+        <div class="garage-num">02</div>
+        <div class="garage-country">JAPAN</div>
+        <div class="garage-title">Японська<br>якість</div>
+        <div class="garage-cars">Nissan GT-R · Toyota Supra · Honda NSX · Lexus LFA · 370Z</div>
+        <div class="garage-tag">НАДІЙНІСТЬ · КУЛЬТ · ДЕТАЛІ</div>
+        <div class="garage-accent"></div>
+      </div>
+
+      <div class="garage-card" data-garage="us">
+        <div class="garage-flag">🇺🇸</div>
+        <div class="garage-num">03</div>
+        <div class="garage-country">USA</div>
+        <div class="garage-title">Американська<br>потужність</div>
+        <div class="garage-cars">Chevrolet C8 · Mustang GT500 · Hellcat · Camaro ZL1 · Ford GT</div>
+        <div class="garage-tag">MUSCLE · V8 · FREEDOM</div>
+        <div class="garage-accent"></div>
+      </div>
+
+      <div class="garage-card" data-garage="cn">
+        <div class="garage-flag">🇨🇳</div>
+        <div class="garage-num">04</div>
+        <div class="garage-country">CHINA</div>
+        <div class="garage-title">Китайські<br>технології</div>
+        <div class="garage-cars">Xiaomi SU7 · Xpeng P7 · BYD Yangwang U9 · Li Auto L9 · NIO ET9</div>
+        <div class="garage-tag">EV · TECH · FUTURE</div>
+        <div class="garage-accent"></div>
+      </div>
+
+    </div>
+
+    <!-- 3D BMW SHOWCASE -->
+    <div class="showcase-3d reveal">
+      <div class="showcase-label">
+        <span class="showcase-label-dot"></span>
+        3D DEMO · BMW M5 · GERMANY GARAGE
+      </div>
+
+      <div class="showcase-inner">
+        <!-- Babylon canvas -->
+        <div class="canvas-wrap">
+          <canvas id="bmwCanvas"></canvas>
+          <div class="canvas-loader" id="bmwLoader">
+            <div class="canvas-loader-ring"></div>
+            <div class="canvas-loader-text">Завантаження 3D моделі...</div>
+          </div>
+          <!-- Corner brackets -->
+          <div class="canvas-corner tl"></div>
+          <div class="canvas-corner tr"></div>
+          <div class="canvas-corner bl"></div>
+          <div class="canvas-corner br"></div>
+        </div>
+
+        <!-- Info panel -->
+        <div class="showcase-info">
+          <div class="showcase-car-label">GERMANY · 01</div>
+          <div class="showcase-car-name">BMW M5</div>
+          <div class="showcase-car-price">ВІД €85,000</div>
+
+          <div class="showcase-specs">
+            <div class="showcase-spec">
+              <div class="showcase-spec-val">625</div>
+              <div class="showcase-spec-key">HP</div>
+            </div>
+            <div class="showcase-spec">
+              <div class="showcase-spec-val">4.4L</div>
+              <div class="showcase-spec-key">V8 TWIN TURBO</div>
+            </div>
+            <div class="showcase-spec">
+              <div class="showcase-spec-val">3.4с</div>
+              <div class="showcase-spec-key">0–100 КМ/ГОД</div>
+            </div>
+          </div>
+
+          <div class="showcase-desc">
+            Флагманський седан BMW M Division. Поєднання повсякденного комфорту з трековою продуктивністю. Один з найпопулярніших авто в колекції Germany Garage.
+          </div>
+
+          <a href="https://builtwithai.pro/autosmart/" target="_blank" class="showcase-cta">
+            Відкрити в шоурумі →
+          </a>
+
+          <div class="showcase-hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Модель обертається автоматично
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+/* ── Custom cursor — RAF тільки при русі ── */
+const dot  = document.getElementById('cursor-dot');
+const ring = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0, rafId = null, idle = false;
+
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  if (idle) { idle = false; rafId = requestAnimationFrame(animateCursor); }
+});
+
+function animateCursor() {
+  rx += (mx - rx) * 0.12;
+  ry += (my - ry) * 0.12;
+  dot.style.left  = mx + 'px';
+  dot.style.top   = my + 'px';
+  ring.style.left = rx + 'px';
+  ring.style.top  = ry + 'px';
+  const dist = Math.abs(mx - rx) + Math.abs(my - ry);
+  if (dist < 0.2) { idle = true; return; } // зупиняємо коли ring наздогнав dot
+  rafId = requestAnimationFrame(animateCursor);
+}
+rafId = requestAnimationFrame(animateCursor);
+
+/* ── Click echo ── */
+document.addEventListener('click', e => {
+  const echo = document.createElement('div');
+  echo.className = 'echo';
+  echo.style.cssText = `left:${e.clientX}px;top:${e.clientY}px;width:40px;height:40px;`;
+  document.body.appendChild(echo);
+  setTimeout(() => echo.remove(), 700);
+});
+
+/* ── Hero video IntersectionObserver ── */
+const heroVideo = document.getElementById('hero-video');
+const heroSection = document.getElementById('hero');
+const heroObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      heroVideo.play().catch(()=>{});
+    } else {
+      heroVideo.pause();
+    }
+  });
+}, { threshold: 0.0 });
+heroObserver.observe(heroSection);
+
+/* ── BMW Babylon.js 3D ── */
+(function initBMW() {
+  const garagesSection = document.getElementById('garages');
+  let bmwEngine = null;
+  let engineStarted = false;
+
+  const bmwObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !engineStarted) {
+        engineStarted = true;
+        loadBabylonAndBMW();
+      }
+    });
+  }, { threshold: 0.1 });
+
+  bmwObserver.observe(garagesSection);
+
+  function loadBabylonAndBMW() {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.babylonjs.com/babylon.js';
+    script.onload = function() {
+      const loaderScript = document.createElement('script');
+      loaderScript.src = 'https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js';
+      loaderScript.onload = startBMWScene;
+      document.head.appendChild(loaderScript);
+    };
+    document.head.appendChild(script);
+  }
+
+  function startBMWScene() {
+    const canvas = document.getElementById('bmwCanvas');
+    const loader = document.getElementById('bmwLoader');
+    if (!canvas || !BABYLON) return;
+
+    bmwEngine = new BABYLON.Engine(canvas, true, {
+      preserveDrawingBuffer: false,
+      stencil: true
+    });
+    bmwEngine.setHardwareScalingLevel(1 / window.devicePixelRatio);
+
+    const scene = new BABYLON.Scene(bmwEngine);
+    scene.clearColor = new BABYLON.Color4(0.13, 0.14, 0.18, 0); // прозорий — CSS фон просвічує
+
+    // ACES tone mapping як в основному AutoSmart
+    var ip = scene.imageProcessingConfiguration;
+    ip.toneMappingEnabled = true;
+    ip.toneMappingType = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+    ip.exposure = 1.3;
+    ip.contrast = 1.6;
+
+    // Camera
+    const camera = new BABYLON.ArcRotateCamera('cam', -Math.PI / 2, Math.PI / 2.5, 3.0, new BABYLON.Vector3(0, 0.3, 0), scene);
+    camera.inputs.clear();
+
+    // Lighting — преміальний темний фон
+    const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0, 1, 0), scene);
+    hemi.intensity = 0.3;
+    hemi.diffuse = new BABYLON.Color3(0.7, 0.78, 1.0);
+    hemi.groundColor = new BABYLON.Color3(0.02, 0.02, 0.05);
+
+    const keyLight = new BABYLON.DirectionalLight('key', new BABYLON.Vector3(0.1, -1, -0.2), scene);
+    keyLight.diffuse = new BABYLON.Color3(0.95, 0.95, 1.0);
+    keyLight.intensity = 3.5;
+
+    const rimLight = new BABYLON.DirectionalLight('rim', new BABYLON.Vector3(-1, -0.2, 0.8), scene);
+    rimLight.diffuse = new BABYLON.Color3(0.15, 0.4, 1.0);
+    rimLight.intensity = 4.5;
+
+    const redLight = new BABYLON.PointLight('red', new BABYLON.Vector3(-4, 0.5, 0.5), scene);
+    redLight.diffuse = new BABYLON.Color3(1.0, 0.04, 0.04);
+    redLight.intensity = 3.5;
+    redLight.range = 10;
+
+    const fillLight = new BABYLON.PointLight('fill', new BABYLON.Vector3(3, 2, 3), scene);
+    fillLight.diffuse = new BABYLON.Color3(0.9, 0.88, 0.8);
+    fillLight.intensity = 1.0;
+    fillLight.range = 8;
+
+    // Load BMW
+    var bmwRoot = null;
+    var bmwAngle = 0;
+
+    function bmwRenderFn() {
+      bmwAngle += 0.008;
+      if (bmwRoot) bmwRoot.rotation.y = bmwAngle;
+      scene.render();
+    }
+
+    BABYLON.SceneLoader.ImportMesh('', 'https://raw.githubusercontent.com/bogdangodluk22-art/AutoSmart_3D/main/', 'BMW.glb', scene, function(meshes, particleSystems, skeletons, animationGroups) {
+      loader.classList.add('hidden');
+
+      // Зупиняємо всі вбудовані анімації GLB
+      if (animationGroups) animationGroups.forEach(function(ag) { ag.stop(); });
+
+      // Створюємо порожній pivot-вузол для обертання
+      var pivot = new BABYLON.TransformNode('pivot', scene);
+
+      // Прив'язуємо всі меші до pivot
+      meshes.forEach(function(m) {
+        if (!m.parent) m.parent = pivot;
+      });
+
+      // Центруємо по bbox
+      var bbox = pivot.getHierarchyBoundingVectors(true);
+      var center = BABYLON.Vector3.Center(bbox.min, bbox.max);
+      pivot.position.x -= center.x;
+      pivot.position.z -= center.z;
+      pivot.position.y -= bbox.min.y;
+
+      bmwRoot = pivot;
+      bmwEngine.runRenderLoop(bmwRenderFn);
+
+    }, null, function(err) {
+      console.warn('BMW load error:', err);
+      loader.querySelector('.canvas-loader-text').textContent = 'Модель недоступна';
+    });
+
+    window.addEventListener('resize', function() { bmwEngine.resize(); });
+  }
+})();
+
+/* ── Sticky nav: active item on scroll ── */
+const navItems = document.querySelectorAll('.nav-item');
+const sections = [];
+navItems.forEach(item => {
+  const href = item.getAttribute('href');
+  if (href && href.startsWith('#')) {
+    const el = document.querySelector(href);
+    if (el) sections.push({ el, item });
+  }
+});
+const navObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    const match = sections.find(s => s.el === entry.target);
+    if (match) {
+      // activate all nav-items with same href
+      document.querySelectorAll(`.nav-item[href="${'#' + entry.target.id}"]`).forEach(ni => {
+        ni.classList.toggle('active', entry.isIntersecting);
+      });
+    }
+  });
+}, { threshold: 0.4 });
+sections.forEach(s => navObserver.observe(s.el));
+
+/* ── Count-up for result numbers ── */
+const resultNumbers = document.querySelectorAll('.result-value[data-target]');
+const resultCountObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const el = entry.target;
+    const target = +el.dataset.target;
+    if (target === 0) { el.textContent = '€0'; resultCountObserver.unobserve(el); return; }
+    const duration = 1000;
+    const step = 16;
+    const increment = target / (duration / step);
+    let current = 0;
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= target) { current = target; clearInterval(timer); }
+      el.textContent = Math.floor(current);
+    }, step);
+    resultCountObserver.unobserve(el);
+  });
+}, { threshold: 0.5 });
+resultNumbers.forEach(el => resultCountObserver.observe(el));
+
+/* ── Count-up for stat numbers ── */
+const statNumbers = document.querySelectorAll('.stat-number[data-target]');
+const countObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const el = entry.target;
+    const target = +el.dataset.target;
+    const duration = 1200;
+    const step = 16;
+    const increment = target / (duration / step);
+    let current = 0;
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= target) { current = target; clearInterval(timer); }
+      el.textContent = Math.floor(current);
+    }, step);
+    countObserver.unobserve(el);
+  });
+}, { threshold: 0.5 });
+statNumbers.forEach(el => countObserver.observe(el));
+
+/* ── Glossary toggle ── */
+document.addEventListener('click', function(e) {
+  const toggle = e.target.closest('#glossaryToggle');
+  if (!toggle) return;
+  const body = document.getElementById('glossaryBody');
+  toggle.classList.toggle('open');
+  if (body) body.classList.toggle('visible');
+});
+
+/* ── Scroll reveal ── */
+const revealObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.08 });
+
+function initReveal() {
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initReveal);
+} else {
+  initReveal();
+}
+
+/* ── Nav strip: pause ticker on hover ── */
+const navInner = document.getElementById('nav-inner');
+navInner.addEventListener('mouseenter', () => navInner.style.animationPlayState = 'paused');
+navInner.addEventListener('mouseleave', () => navInner.style.animationPlayState = 'running');
+</script>
+
+
+<!-- ══════════════════════════════════════
+     AI TOOLS
+══════════════════════════════════════ -->
+<section class="section" id="tools">
+  <div class="container">
+
+    <div class="sec-label reveal">04 · AI ІНСТРУМЕНТИ</div>
+    <h2 class="sec-title reveal">Чотири інструменти.<br><span class="red">Одна відповідь</span> на все.</h2>
+
+    <div class="prose reveal">
+      <p>Кожен інструмент вирішує конкретну задачу покупця. Разом вони закривають увесь шлях від «цікавлюсь» до «готовий купувати» — без дзвінків, без форм, без очікування.</p>
+    </div>
+
+    <!-- TOOLS GRID -->
+    <div class="tools-grid">
+
+      <!-- INFO -->
+      <div class="tool-card reveal" style="--tc: #4a9eff;">
+        <div class="tool-card-top">
+          <div class="tool-badge" style="background: rgba(74,158,255,0.12); color: #4a9eff;">INFO</div>
+          <div class="tool-icon">💬</div>
+        </div>
+        <h3 class="tool-title">Запитай AI</h3>
+        <p class="tool-desc">GPT-4o відповідає на будь-яке питання про авто — історія моделі, слабкі місця, вартість обслуговування, факти. За 2–3 секунди. Без менеджера.</p>
+        <div class="tool-chips">
+          <span class="tool-chip">Історія</span>
+          <span class="tool-chip">Слабкі місця</span>
+          <span class="tool-chip">Обслуговування</span>
+          <span class="tool-chip">Fun facts</span>
+        </div>
+        <div class="tool-tech">⚙ n8n webhook · GPT-4o · max_tokens 400</div>
+      </div>
+
+      <!-- COMP -->
+      <div class="tool-card reveal" style="--tc: #a855f7;">
+        <div class="tool-card-top">
+          <div class="tool-badge" style="background: rgba(168,85,247,0.12); color: #a855f7;">COMP</div>
+          <div class="tool-icon">⚖️</div>
+        </div>
+        <h3 class="tool-title">Порівняння</h3>
+        <p class="tool-desc">Порівнює поточне авто з будь-яким іншим з колекції по 5 ключових параметрах. Таблиця будується миттєво — без запитів на сервер.</p>
+        <div class="tool-chips">
+          <span class="tool-chip">Потужність</span>
+          <span class="tool-chip">Прискорення</span>
+          <span class="tool-chip">Ціна</span>
+          <span class="tool-chip">Двигун</span>
+          <span class="tool-chip">Тип</span>
+        </div>
+        <div class="tool-tech">⚙ CAR_SPECS об'єкт · 20 авто · фронтенд</div>
+      </div>
+
+      <!-- CALC -->
+      <div class="tool-card reveal" style="--tc: #22c55e;">
+        <div class="tool-card-top">
+          <div class="tool-badge" style="background: rgba(34,197,94,0.12); color: #22c55e;">CALC</div>
+          <div class="tool-icon">🧮</div>
+        </div>
+        <h3 class="tool-title">Калькулятор імпорту</h3>
+        <p class="tool-desc">Рахує повну вартість ввезення авто в Україну: акциз, мито 10%, ПДВ 20%, доставка. Результат — одразу, без брокера і без дзвінків.</p>
+        <div class="tool-formula reveal">
+          <div class="formula-row">
+            <span>Акциз</span>
+            <span class="formula-val red">вік × об'єм × €50</span>
+          </div>
+          <div class="formula-row">
+            <span>Мито</span>
+            <span class="formula-val">10% від ціни</span>
+          </div>
+          <div class="formula-row">
+            <span>ПДВ</span>
+            <span class="formula-val">20% від суми</span>
+          </div>
+          <div class="formula-row">
+            <span>Доставка</span>
+            <span class="formula-val">~€2,000</span>
+          </div>
+        </div>
+        <div class="tool-tech">⚙ Локальна формула · без API · миттєво</div>
+      </div>
+
+      <!-- PICK -->
+      <div class="tool-card reveal" style="--tc: #f59e0b;">
+        <div class="tool-card-top">
+          <div class="tool-badge" style="background: rgba(245,158,11,0.12); color: #f59e0b;">PICK</div>
+          <div class="tool-icon">🎯</div>
+        </div>
+        <h3 class="tool-title">Підбір авто</h3>
+        <p class="tool-desc">AI знаходить ідеальне авто з колекції за бюджетом, характером і стилем використання. Скорингова система перебирає всі 20 авто і видає найкращий варіант.</p>
+        <div class="tool-filters reveal">
+          <div class="filter-group">
+            <div class="filter-label">БЮДЖЕТ</div>
+            <div class="filter-tags">
+              <span class="filter-tag active">до €50k</span>
+              <span class="filter-tag">€50–100k</span>
+              <span class="filter-tag">€100k+</span>
+            </div>
+          </div>
+          <div class="filter-group">
+            <div class="filter-label">ХАРАКТЕР</div>
+            <div class="filter-tags">
+              <span class="filter-tag">Спорт</span>
+              <span class="filter-tag active">Комфорт</span>
+              <span class="filter-tag">Потужність</span>
+            </div>
+          </div>
+        </div>
+        <div class="tool-tech">⚙ PICK_DATA · scoring алгоритм · фронтенд</div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM CALLOUT -->
+    <div class="tools-callout reveal">
+      <div class="tools-callout-icon">⚡</div>
+      <div class="tools-callout-text">
+        <strong>Всі 4 інструменти — безкоштовно</strong> для кожного відвідувача шоуруму. Без реєстрації, без форм, без очікування менеджера. AI працює 24/7.
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     ARCHITECTURE
+══════════════════════════════════════ -->
+<section class="section" id="arch">
+  <div class="container">
+
+    <div class="sec-label reveal">05 · АРХІТЕКТУРА</div>
+    <h2 class="sec-title reveal">Як це <span class="red">влаштовано</span><br>всередині</h2>
+
+    <div class="prose reveal">
+      <p>Весь продукт — єдиний HTML-файл. Два незалежних Babylon.js engine (Hero + Garage), чотири AI-інструменти, мультимовний інтерфейс і Telegram-бот. Без фреймворків. Без залежностей. Максимальний контроль над кожним рядком.</p>
+    </div>
+
+    <!-- WORKFLOW SVG DIAGRAM -->
+    <div class="wf-wrap reveal">
+      <div class="wf-label">⚙ AUTOSMART · WORKFLOW ARCHITECTURE</div>
+      <div class="wf-scroll">
+        <svg class="wf-svg" viewBox="0 0 1000 160" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L6,3 z" fill="rgba(232,0,30,0.6)"/>
+            </marker>
+          </defs>
+
+          <!-- USER -->
+          <rect x="10" y="55" width="110" height="52" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+          <text x="65" y="78" text-anchor="middle" fill="rgba(240,240,240,0.9)" font-size="11" font-family="'Bebas Neue',sans-serif" letter-spacing="1">БРАУЗЕР</text>
+          <text x="65" y="96" text-anchor="middle" fill="rgba(240,240,240,0.35)" font-size="8" font-family="'JetBrains Mono',monospace">Клієнт · AutoSmart</text>
+
+          <!-- arrow -->
+          <line x1="120" y1="81" x2="148" y2="81" stroke="rgba(232,0,30,0.5)" stroke-width="1" marker-end="url(#arr)"/>
+
+          <!-- BABYLON -->
+          <rect x="150" y="55" width="120" height="52" rx="8" fill="rgba(232,0,30,0.07)" stroke="rgba(232,0,30,0.25)" stroke-width="1"/>
+          <text x="210" y="78" text-anchor="middle" fill="#e8001e" font-size="11" font-family="'Bebas Neue',sans-serif" letter-spacing="1">BABYLON.JS</text>
+          <text x="210" y="96" text-anchor="middle" fill="rgba(240,240,240,0.35)" font-size="8" font-family="'JetBrains Mono',monospace">3D Engine · GLB · DPI</text>
+
+          <!-- arrow -->
+          <line x1="270" y1="81" x2="298" y2="81" stroke="rgba(232,0,30,0.5)" stroke-width="1" marker-end="url(#arr)"/>
+
+          <!-- GLB FILES -->
+          <rect x="300" y="55" width="120" height="52" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+          <text x="360" y="78" text-anchor="middle" fill="rgba(240,240,240,0.9)" font-size="11" font-family="'Bebas Neue',sans-serif" letter-spacing="1">GLB МОДЕЛІ</text>
+          <text x="360" y="96" text-anchor="middle" fill="rgba(240,240,240,0.35)" font-size="8" font-family="'JetBrains Mono',monospace">GitHub · 20 файлів · Draco</text>
+
+          <!-- arrow down to AI -->
+          <line x1="360" y1="107" x2="360" y2="135" stroke="rgba(232,0,30,0.3)" stroke-width="1" stroke-dasharray="3,3"/>
+
+          <!-- AI TOOLS label -->
+          <text x="360" y="150" text-anchor="middle" fill="rgba(240,240,240,0.2)" font-size="8" font-family="'JetBrains Mono',monospace">AI TOOLS</text>
+
+          <!-- arrow from browser to AI -->
+          <line x1="65" y1="107" x2="65" y2="135" stroke="rgba(232,0,30,0.3)" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="65" y1="135" x2="510" y2="135" stroke="rgba(232,0,30,0.3)" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="510" y1="135" x2="510" y2="107" stroke="rgba(232,0,30,0.3)" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+
+          <!-- INFO TOOL -->
+          <rect x="450" y="55" width="120" height="52" rx="8" fill="rgba(74,158,255,0.07)" stroke="rgba(74,158,255,0.2)" stroke-width="1"/>
+          <text x="510" y="78" text-anchor="middle" fill="#4a9eff" font-size="11" font-family="'Bebas Neue',sans-serif" letter-spacing="1">INFO · n8n</text>
+          <text x="510" y="96" text-anchor="middle" fill="rgba(240,240,240,0.35)" font-size="8" font-family="'JetBrains Mono',monospace">webhook → GPT-4o</text>
+
+          <!-- arrow -->
+          <line x1="570" y1="81" x2="598" y2="81" stroke="rgba(232,0,30,0.5)" stroke-width="1" marker-end="url(#arr)"/>
+
+          <!-- CALC/COMP/PICK -->
+          <rect x="600" y="55" width="130" height="52" rx="8" fill="rgba(34,197,94,0.07)" stroke="rgba(34,197,94,0.2)" stroke-width="1"/>
+          <text x="665" y="75" text-anchor="middle" fill="#22c55e" font-size="11" font-family="'Bebas Neue',sans-serif" letter-spacing="1">CALC · COMP</text>
+          <text x="665" y="90" text-anchor="middle" fill="#f59e0b" font-size="11" font-family="'Bebas Neue',sans-serif" letter-spacing="1">PICK</text>
+          <text x="665" y="104" text-anchor="middle" fill="rgba(240,240,240,0.35)" font-size="8" font-family="'JetBrains Mono',monospace">Frontend · без API</text>
+
+          <!-- arrow -->
+          <line x1="730" y1="81" x2="758" y2="81" stroke="rgba(232,0,30,0.5)" stroke-width="1" marker-end="url(#arr)"/>
+
+          <!-- TELEGRAM -->
+          <rect x="760" y="55" width="120" height="52" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+          <text x="820" y="78" text-anchor="middle" fill="rgba(240,240,240,0.9)" font-size="11" font-family="'Bebas Neue',sans-serif" letter-spacing="1">TELEGRAM</text>
+          <text x="820" y="96" text-anchor="middle" fill="rgba(240,240,240,0.35)" font-size="8" font-family="'JetBrains Mono',monospace">Bot · @autosmart_3bot</text>
+
+          <!-- arrow -->
+          <line x1="880" y1="81" x2="908" y2="81" stroke="rgba(232,0,30,0.5)" stroke-width="1" marker-end="url(#arr)"/>
+
+          <!-- VPS -->
+          <rect x="910" y="55" width="82" height="52" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+          <text x="951" y="78" text-anchor="middle" fill="rgba(240,240,240,0.9)" font-size="11" font-family="'Bebas Neue',sans-serif" letter-spacing="1">VPS</text>
+          <text x="951" y="96" text-anchor="middle" fill="rgba(240,240,240,0.35)" font-size="8" font-family="'JetBrains Mono',monospace">Hostinger · n8n</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ORBITAL SVG DIAGRAM -->
+    <div class="arch-wrap reveal">
+      <div class="orbital-wrap">
+        <svg class="orbital-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(232,0,30,0.3)"/>
+              <stop offset="100%" stop-color="rgba(232,0,30,0.05)"/>
+            </radialGradient>
+          </defs>
+
+          <!-- Orbit rings -->
+          <circle cx="200" cy="200" r="130" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="4,4"/>
+          <circle cx="200" cy="200" r="80"  fill="none" stroke="rgba(232,0,30,0.1)"   stroke-width="1" stroke-dasharray="3,5"/>
+
+          <!-- Core -->
+          <circle cx="200" cy="200" r="52" fill="url(#coreGrad)" stroke="rgba(232,0,30,0.35)" stroke-width="1.5"/>
+          <text x="200" y="196" text-anchor="middle" fill="#fff" font-size="12" font-family="'Bebas Neue',sans-serif" letter-spacing="2">AUTO</text>
+          <text x="200" y="212" text-anchor="middle" fill="#e8001e" font-size="12" font-family="'Bebas Neue',sans-serif" letter-spacing="2">SMART</text>
+
+          <!-- Nodes on orbit (130px radius) -->
+          <!-- Babylon.js — top -->
+          <circle cx="200" cy="70"  r="28" fill="rgba(232,0,30,0.1)" stroke="rgba(232,0,30,0.4)" stroke-width="1.5"/>
+          <text x="200" y="67"  text-anchor="middle" fill="#e8001e" font-size="9"  font-family="'Bebas Neue',sans-serif" letter-spacing="1">BABYLON</text>
+          <text x="200" y="79"  text-anchor="middle" fill="rgba(240,240,240,0.5)" font-size="7" font-family="'JetBrains Mono',monospace">.JS</text>
+          <line x1="200" y1="98" x2="200" y2="148" stroke="rgba(232,0,30,0.2)" stroke-width="1"/>
+
+          <!-- GPT-4o — top right -->
+          <circle cx="313" cy="113" r="28" fill="rgba(74,158,255,0.1)" stroke="rgba(74,158,255,0.35)" stroke-width="1.5"/>
+          <text x="313" y="110" text-anchor="middle" fill="#4a9eff" font-size="9" font-family="'Bebas Neue',sans-serif" letter-spacing="1">GPT-4o</text>
+          <text x="313" y="122" text-anchor="middle" fill="rgba(240,240,240,0.5)" font-size="7" font-family="'JetBrains Mono',monospace">OpenAI</text>
+          <line x1="291" y1="131" x2="258" y2="159" stroke="rgba(74,158,255,0.2)" stroke-width="1"/>
+
+          <!-- n8n — right -->
+          <circle cx="330" cy="200" r="28" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+          <text x="330" y="197" text-anchor="middle" fill="rgba(240,240,240,0.9)" font-size="11" font-family="'Bebas Neue',sans-serif" letter-spacing="1">n8n</text>
+          <text x="330" y="209" text-anchor="middle" fill="rgba(240,240,240,0.5)" font-size="7" font-family="'JetBrains Mono',monospace">self-hosted</text>
+          <line x1="302" y1="200" x2="252" y2="200" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+          <!-- Telegram — bottom right -->
+          <circle cx="313" cy="287" r="28" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+          <text x="313" y="284" text-anchor="middle" fill="rgba(240,240,240,0.9)" font-size="9" font-family="'Bebas Neue',sans-serif" letter-spacing="1">TELEGRAM</text>
+          <text x="313" y="296" text-anchor="middle" fill="rgba(240,240,240,0.5)" font-size="7" font-family="'JetBrains Mono',monospace">Bot · WebApp</text>
+          <line x1="291" y1="269" x2="258" y2="241" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+          <!-- GitHub — bottom -->
+          <circle cx="200" cy="330" r="28" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+          <text x="200" y="327" text-anchor="middle" fill="rgba(240,240,240,0.9)" font-size="9" font-family="'Bebas Neue',sans-serif" letter-spacing="1">GITHUB</text>
+          <text x="200" y="339" text-anchor="middle" fill="rgba(240,240,240,0.5)" font-size="7" font-family="'JetBrains Mono',monospace">GLB · Assets</text>
+          <line x1="200" y1="302" x2="200" y2="252" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+          <!-- VPS — bottom left -->
+          <circle cx="87" cy="287" r="28" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+          <text x="87" y="284" text-anchor="middle" fill="rgba(240,240,240,0.9)" font-size="11" font-family="'Bebas Neue',sans-serif" letter-spacing="1">VPS</text>
+          <text x="87" y="296" text-anchor="middle" fill="rgba(240,240,240,0.5)" font-size="7" font-family="'JetBrains Mono',monospace">Hostinger</text>
+          <line x1="109" y1="269" x2="142" y2="241" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+          <!-- HTML — left -->
+          <circle cx="70" cy="200" r="28" fill="rgba(232,0,30,0.08)" stroke="rgba(232,0,30,0.25)" stroke-width="1.5"/>
+          <text x="70" y="197" text-anchor="middle" fill="#e8001e" font-size="9" font-family="'Bebas Neue',sans-serif" letter-spacing="1">HTML</text>
+          <text x="70" y="209" text-anchor="middle" fill="rgba(240,240,240,0.5)" font-size="7" font-family="'JetBrains Mono',monospace">240 KB</text>
+          <line x1="98" y1="200" x2="148" y2="200" stroke="rgba(232,0,30,0.2)" stroke-width="1"/>
+        </svg>
+      </div>
+
+      <!-- STACK LIST -->
+      <div class="arch-list">
+        <div class="arch-item reveal">
+          <div class="arch-dot" style="background:#e8001e;"></div>
+          <div>
+            <div class="arch-item-name">Babylon.js</div>
+            <div class="arch-item-desc">Два незалежних 3D engine — Hero і Garage. Зупиняються через IntersectionObserver коли секція не видима. GLB моделі з Draco стисненням, кеш в пам'яті.</div>
+          </div>
+        </div>
+        <div class="arch-item reveal">
+          <div class="arch-dot" style="background:#4a9eff;"></div>
+          <div>
+            <div class="arch-item-name">GPT-4o через n8n</div>
+            <div class="arch-item-desc">INFO-інструмент — webhook POST до n8n, GPT-4o відповідає за 2–3 секунди. Temperature 0.7, max_tokens 400. Жодних прямих API-ключів у фронтенді.</div>
+          </div>
+        </div>
+        <div class="arch-item reveal">
+          <div class="arch-dot" style="background:#22c55e;"></div>
+          <div>
+            <div class="arch-item-name">COMP · CALC · PICK — Frontend</div>
+            <div class="arch-item-desc">Три інструменти працюють повністю на фронтенді без жодного API-запиту. CAR_SPECS об'єкт (20 авто × 5 параметрів), формула акцизу, scoring алгоритм PICK_DATA.</div>
+          </div>
+        </div>
+        <div class="arch-item reveal">
+          <div class="arch-dot" style="background:#a855f7;"></div>
+          <div>
+            <div class="arch-item-name">Telegram Bot @autosmart_3bot</div>
+            <div class="arch-item-desc">Окрема HTML-сторінка як Telegram Web App. AI-консультант знає поточне авто через URL-параметр. user_id з Telegram.WebApp.initDataUnsafe.</div>
+          </div>
+        </div>
+        <div class="arch-item reveal">
+          <div class="arch-dot" style="background:#f59e0b;"></div>
+          <div>
+            <div class="arch-item-name">Hostinger VPS · GitHub</div>
+            <div class="arch-item-desc">nginx в Docker — роздає HTML і статику. GLB моделі та фото на GitHub raw (без rate-limit критичні файли перенесені на VPS). n8n self-hosted на тому ж VPS.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     TEAM
+══════════════════════════════════════ -->
+<section class="section" id="team">
+  <div class="container">
+
+    <div class="sec-label reveal">06 · КОМАНДА</div>
+    <h2 class="sec-title reveal">Люди за <span class="red">платформою</span></h2>
+
+    <div class="prose reveal">
+      <p>AutoSmart — це не просто технічний проект. Це продукт де AI-архітектура, авто-експертиза та sales-досвід зійшлися в одній точці.</p>
+    </div>
+
+    <div class="team-grid">
+
+      <!-- BOGDAN -->
+      <div class="team-card reveal">
+        <div class="team-card-inner">
+          <div class="team-photo-wrap">
+            <div class="team-photo" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); background-image: url('https://raw.githubusercontent.com/bogdangodluk22-art/AutoSmart_3D/main/%D0%91%D0%BE%D0%B3%D0%B4%D0%B0%D0%BD.png'); background-size: cover; background-position: center top;">
+            </div>
+            <div class="team-role-tag">FOUNDER</div>
+          </div>
+          <div class="team-info">
+            <div class="team-name">Богдан Годлюк</div>
+            <div class="team-position">Founder & AI Architect</div>
+            <p class="team-desc">Змінює правила гри сучасними AI-інструментами. Будує продукти на перетині технологій, дизайну та бізнесу — від архітектури до запуску. Творець GoTrends, RestroAI та AutoSmart.</p>
+            <div class="team-stats">
+              <div class="team-stat">
+                <div class="team-stat-num">3</div>
+                <div class="team-stat-label">AI продукти з нуля</div>
+              </div>
+              <div class="team-stat">
+                <div class="team-stat-num">№1</div>
+                <div class="team-stat-label">3D шоурум в Україні</div>
+              </div>
+            </div>
+            <div class="team-links">
+              <a href="https://t.me/bohdanhodliuk" target="_blank" class="team-link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>
+                Telegram
+              </a>
+              <a href="https://www.youtube.com/@bohdan.hodliuk" target="_blank" class="team-link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+                YouTube
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANDRII -->
+      <div class="team-card reveal">
+        <div class="team-card-inner">
+          <div class="team-photo-wrap">
+            <div class="team-photo" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); background-image: url('https://raw.githubusercontent.com/bogdangodluk22-art/AutoSmart_3D/main/%D0%90%D0%BD%D0%B4%D1%80%D1%96%D0%B9.jpg'); background-size: cover; background-position: center top;">
+            </div>
+            <div class="team-role-tag">CO-FOUNDER</div>
+          </div>
+          <div class="team-info">
+            <div class="team-name">Андрій Мельник</div>
+            <div class="team-position">Co-Founder · Авто-експерт</div>
+            <p class="team-desc">Серійний підприємець з великим досвідом у готельному бізнесі та нерухомості. Будує системи що працюють як швейцарський годинник — не просто красиві, але надійні та масштабовані.</p>
+            <div class="team-stats">
+              <div class="team-stat">
+                <div class="team-stat-num">15+</div>
+                <div class="team-stat-label">Років у бізнесі</div>
+              </div>
+              <div class="team-stat">
+                <div class="team-stat-num">3</div>
+                <div class="team-stat-label">Індустрії під контролем</div>
+              </div>
+            </div>
+            <div class="team-links">
+              <span class="team-link-muted">Авто-консультант на платформі</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OLEKSII -->
+      <div class="team-card reveal">
+        <div class="team-card-inner">
+          <div class="team-photo-wrap">
+            <div class="team-photo" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); background-image: url('https://raw.githubusercontent.com/bogdangodluk22-art/AutoSmart_3D/main/%D0%9E%D0%9B%D0%95%D0%9A%D0%A1%D0%86%D0%99.jpg'); background-size: 110%; background-position: center 5%;">
+            </div>
+            <div class="team-role-tag">HEAD OF SALES</div>
+          </div>
+          <div class="team-info">
+            <div class="team-name">Олексій Хвиля</div>
+            <div class="team-position">Head of Sales</div>
+            <p class="team-desc">Проводить особисті зустрічі з серйозними клієнтами на найвищому рівні. Закриває угоди там де інші відступають. Обличчя і голос компанії в живих переговорах.</p>
+            <div class="team-stats">
+              <div class="team-stat">
+                <div class="team-stat-num">200+</div>
+                <div class="team-stat-label">Закритих угод</div>
+              </div>
+              <div class="team-stat">
+                <div class="team-stat-num">TOP</div>
+                <div class="team-stat-label">Рівень клієнтів</div>
+              </div>
+            </div>
+            <div class="team-links">
+              <span class="team-link-muted">Sales · Client experience</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BUILT WITH AI BANNER -->
+    <div class="bwa-banner reveal">
+      <div class="bwa-banner-left">
+        <div class="bwa-label">BUILT WITH AI</div>
+        <div class="bwa-sub">Міжнародний вектор · BWA · 2026</div>
+      </div>
+      <div class="bwa-banner-right">
+        AutoSmart — частина портфоліо AI-продуктів побудованих під брендом <strong>Built with AI (BWA)</strong>. Поруч з GoTrends та RestroAI — три різних ринки, одна архітектурна філософія.
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     RESULTS
+══════════════════════════════════════ -->
+<section class="section" id="results">
+  <div class="container">
+
+    <div class="sec-label reveal">07 · РЕЗУЛЬТАТИ</div>
+    <h2 class="sec-title reveal">Що змінилось для<br><span class="red">покупця і дилера</span></h2>
+
+    <div class="prose reveal">
+      <p>Порахуємо чесно. AutoSmart не замінює дилера — він підвищує якість кожного контакту. Клієнт приходить вже підготовленим: він бачив авто в 3D, знає характеристики, порахував вартість імпорту і має конкретне питання.</p>
+    </div>
+
+    <!-- RESULT CARDS -->
+    <div class="results-grid">
+      <div class="result-card reveal">
+        <div class="result-accent" style="--c1:#e8001e; --c2:#ff4444;"></div>
+        <span class="result-icon">⏱️</span>
+        <div class="result-value" data-target="30">0</div>
+        <div class="result-unit">секунд</div>
+        <div class="result-label">Перше враження</div>
+        <div class="result-desc">Клієнт вирішує чи цікаво йому авто за 30 секунд. З 3D і AI — ці 30 секунд стають досвідом, а не переглядом фото.</div>
+      </div>
+
+      <div class="result-card reveal">
+        <div class="result-accent" style="--c1:#4a9eff; --c2:#22c55e;"></div>
+        <span class="result-icon">🤖</span>
+        <div class="result-value">24/7</div>
+        <div class="result-unit">&nbsp;</div>
+        <div class="result-label">AI консультант онлайн</div>
+        <div class="result-desc">Питання о 23:00 отримує відповідь миттєво. Без очікування менеджера. Без форм. GPT-4o знає кожне авто в колекції.</div>
+      </div>
+
+      <div class="result-card reveal">
+        <div class="result-accent" style="--c1:#22c55e; --c2:#4a9eff;"></div>
+        <span class="result-icon">💰</span>
+        <div class="result-value" data-target="0">0</div>
+        <div class="result-unit">додаткових витрат</div>
+        <div class="result-label">Для клієнта</div>
+        <div class="result-desc">Калькулятор імпорту, порівняння авто, AI підбір — все безкоштовно. Без брокера, без консультанта, без дзвінків.</div>
+      </div>
+    </div>
+
+    <!-- HORIZONTAL METRICS -->
+    <div class="metrics-row reveal">
+      <div class="metric-item">
+        <div class="metric-num red">4</div>
+        <div class="metric-label">країни в колекції</div>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <div class="metric-num">20</div>
+        <div class="metric-label">преміальних авто</div>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <div class="metric-num">4</div>
+        <div class="metric-label">AI інструменти</div>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <div class="metric-num red">1</div>
+        <div class="metric-label">файл · без фреймворків</div>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <div class="metric-num">2–3</div>
+        <div class="metric-label">секунди відповідь AI</div>
+      </div>
+    </div>
+
+    <!-- QUOTE BLOCK -->
+    <div class="result-quote reveal">
+      <div class="result-quote-line"></div>
+      <blockquote class="result-quote-text">
+        "Люди купують авто за €50,000. Але обирають їх за 30 секунд на сайті. AutoSmart робить ці 30 секунд незабутніми."
+      </blockquote>
+      <div class="result-quote-author">— Богдан Годлюк, Founder & AI Architect</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     BEFORE / AFTER
+══════════════════════════════════════ -->
+<section class="section" id="before">
+  <div class="container">
+
+    <div class="sec-label reveal">08 · ДО / ПІСЛЯ</div>
+    <h2 class="sec-title reveal">Читач отримує відповідь<br><span class="red">за 5 секунд</span> без читання тексту</h2>
+
+    <div class="compare-wrap reveal">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th class="col-param">ПАРАМЕТР</th>
+            <th class="col-bad">✗ Звичайний сайт</th>
+            <th class="col-good">✓ AutoSmart</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Перегляд авто</td>
+            <td><span class="bad">📸 2D фото · 8 знімків</span></td>
+            <td><span class="good">🎮 3D модель · 360° · обертання</span></td>
+          </tr>
+          <tr>
+            <td>Консультація</td>
+            <td><span class="bad">📞 Дзвінок / форма · чекай менеджера</span></td>
+            <td><span class="good">🤖 AI миттєво · GPT-4o · 24/7</span></td>
+          </tr>
+          <tr>
+            <td>Підбір авто</td>
+            <td><span class="bad">🔍 Ручний пошук по фільтрах</span></td>
+            <td><span class="good">🎯 AI скоринг · бюджет + характер</span></td>
+          </tr>
+          <tr>
+            <td>Вартість імпорту</td>
+            <td><span class="bad">❓ Окремий пошук · брокер · дзвінки</span></td>
+            <td><span class="good">🧮 Вбудований калькулятор · миттєво</span></td>
+          </tr>
+          <tr>
+            <td>Порівняння авто</td>
+            <td><span class="bad">📋 Відкривай вкладки · порівнюй вручну</span></td>
+            <td><span class="good">⚖️ 5 параметрів · одна таблиця</span></td>
+          </tr>
+          <tr>
+            <td>Атмосфера</td>
+            <td><span class="bad">😐 Таблиці · форми · каталог</span></td>
+            <td><span class="good">🏎️ GT Racing досвід · 4 гаражі</span></td>
+          </tr>
+          <tr>
+            <td>Доступність</td>
+            <td><span class="bad">🕘 Тільки в робочий час</span></td>
+            <td><span class="good">⚡ 24/7 · без реєстрації</span></td>
+          </tr>
+          <tr>
+            <td>Мови</td>
+            <td><span class="bad">🇺🇦 Одна мова</span></td>
+            <td><span class="good">🌍 UA + EN · перемикання миттєво</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- VERDICT -->
+    <div class="verdict-block reveal">
+      <div class="verdict-left">
+        <div class="verdict-title">Звичайний сайт</div>
+        <div class="verdict-score bad-score">Пасивний каталог</div>
+        <div class="verdict-desc">Клієнт бачить фото, читає характеристики і йде думати. Або телефонує менеджеру. Або просто закриває вкладку.</div>
+      </div>
+      <div class="verdict-vs">VS</div>
+      <div class="verdict-right">
+        <div class="verdict-title">AutoSmart</div>
+        <div class="verdict-score good-score">Живий шоурум</div>
+        <div class="verdict-desc">Клієнт крутить авто в 3D, питає AI, рахує імпорт і приходить до дилера вже з конкретним вибором. Якість кожного контакту — вища.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     STACK
+══════════════════════════════════════ -->
+<section class="section" id="stack">
+  <div class="container">
+
+    <div class="sec-label reveal">09 · ТЕХНІЧНИЙ СТЕК</div>
+    <h2 class="sec-title reveal">Інструменти які<br><span class="red">побудували</span> платформу</h2>
+
+    <div class="stack-grid">
+      <div class="stack-card reveal">
+        <div class="stack-icon">🎮</div>
+        <div class="stack-name">Babylon.js</div>
+        <div class="stack-desc">3D рендеринг. Два engine: Hero + Garage. GLB моделі з Draco стисненням. IntersectionObserver — зупиняємо render loop коли секція не видима.</div>
+        <div class="stack-tag">Frontend · 3D</div>
+      </div>
+      <div class="stack-card reveal">
+        <div class="stack-icon">🤖</div>
+        <div class="stack-name">GPT-4o</div>
+        <div class="stack-desc">AI-консультант для INFO інструменту. Через n8n webhook — жодних прямих ключів у браузері. Temperature 0.7, max_tokens 400, преміальний стиль відповіді.</div>
+        <div class="stack-tag">AI · OpenAI</div>
+      </div>
+      <div class="stack-card reveal">
+        <div class="stack-icon">⚙️</div>
+        <div class="stack-name">n8n (self-hosted)</div>
+        <div class="stack-desc">Оркестрація AI запитів. Webhook приймає запит від фронтенду → GPT-4o → повертає відповідь. Self-hosted на Hostinger VPS без лімітів.</div>
+        <div class="stack-tag">Backend · Automation</div>
+      </div>
+      <div class="stack-card reveal">
+        <div class="stack-icon">📦</div>
+        <div class="stack-name">Vanilla HTML/CSS/JS</div>
+        <div class="stack-desc">Весь продукт — єдиний файл без фреймворків. Bebas Neue + Barlow Condensed + Barlow. CSS Variables, кастомний cursor, IntersectionObserver, i18n UA/EN.</div>
+        <div class="stack-tag">Frontend · No framework</div>
+      </div>
+      <div class="stack-card reveal">
+        <div class="stack-icon">☁️</div>
+        <div class="stack-name">Hostinger VPS</div>
+        <div class="stack-desc">nginx в Docker роздає HTML і статику. n8n self-hosted на тому ж сервері. Критичні GLB та фото перенесені з GitHub на VPS для швидкості FCP.</div>
+        <div class="stack-tag">Infrastructure</div>
+      </div>
+      <div class="stack-card reveal">
+        <div class="stack-icon">🐙</div>
+        <div class="stack-name">GitHub</div>
+        <div class="stack-desc">Сховище GLB моделей і медіа. Raw URL для завантаження напряму в Babylon.js. Workflow деплою: push → curl на VPS.</div>
+        <div class="stack-tag">Storage · Deploy</div>
+      </div>
+      <div class="stack-card reveal">
+        <div class="stack-icon">📱</div>
+        <div class="stack-name">Telegram Bot API</div>
+        <div class="stack-desc">Бот @autosmart_3bot — AI консультант в Telegram. Окрема HTML сторінка як Telegram Web App. user_id з initDataUnsafe для персоналізації.</div>
+        <div class="stack-tag">Distribution · Bot</div>
+      </div>
+      <div class="stack-card reveal">
+        <div class="stack-icon">🌍</div>
+        <div class="stack-name">i18n UA/EN</div>
+        <div class="stack-desc">Вбудована двомовність без бібліотек. TRANSLATIONS об'єкт з усіма рядками. data-i18n атрибути, applyLang() функція, збереження в localStorage.</div>
+        <div class="stack-tag">Frontend · i18n</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     COST
+══════════════════════════════════════ -->
+<section class="section" id="cost">
+  <div class="container">
+
+    <div class="sec-label reveal">10 · ВАРТІСТЬ СИСТЕМИ</div>
+    <h2 class="sec-title reveal">Прозорість<br><span class="red">будує довіру</span></h2>
+
+    <div class="prose reveal">
+      <p>Реальна вартість запуску і підтримки AutoSmart. Без прихованих витрат.</p>
+    </div>
+
+    <div class="cost-wrap reveal">
+      <table class="cost-table">
+        <thead>
+          <tr>
+            <th>Інструмент</th>
+            <th>$/міс</th>
+            <th>Роль у системі</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Hostinger VPS</td>
+            <td class="cost-val">~$8</td>
+            <td class="cost-role">nginx + n8n + Docker. Весь бекенд на одному сервері</td>
+          </tr>
+          <tr>
+            <td>OpenAI GPT-4o</td>
+            <td class="cost-val">~$5–15</td>
+            <td class="cost-role">INFO інструмент. Pay-per-use — платиш тільки за реальні запити</td>
+          </tr>
+          <tr>
+            <td>GitHub</td>
+            <td class="cost-val">$0</td>
+            <td class="cost-role">Сховище GLB моделей та медіафайлів. Безкоштовно</td>
+          </tr>
+          <tr>
+            <td>Babylon.js</td>
+            <td class="cost-val">$0</td>
+            <td class="cost-role">Open source 3D engine. CDN завантаження</td>
+          </tr>
+          <tr>
+            <td>Telegram Bot API</td>
+            <td class="cost-val">$0</td>
+            <td class="cost-role">Бот @autosmart_3bot. Офіційне API — безкоштовно</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td><strong>РАЗОМ</strong></td>
+            <td class="cost-total">$13–23</td>
+            <td class="cost-role-total">на місяць · повністю робоча платформа</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="cost-compare reveal">
+      <div class="cost-compare-item bad-bg">
+        <div class="cost-compare-label">Фізичний шоурум</div>
+        <div class="cost-compare-num" style="color:var(--red);">$5,000+</div>
+        <div class="cost-compare-desc">оренда · персонал · комунальні · обладнання</div>
+      </div>
+      <div class="cost-compare-vs">VS</div>
+      <div class="cost-compare-item good-bg">
+        <div class="cost-compare-label">AutoSmart</div>
+        <div class="cost-compare-num" style="color:#22c55e;">$13–23</div>
+        <div class="cost-compare-desc">на місяць · 24/7 · без персоналу · AI консультант</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     GLOSSARY
+══════════════════════════════════════ -->
+<section class="section" id="glossary">
+  <div class="container">
+
+    <div class="sec-label reveal">11 · СЛОВНИК ТЕРМІНІВ</div>
+
+    <div class="glossary-toggle" id="glossaryToggle">
+      <span>📖 РОЗКРИТИ СЛОВНИК ТЕРМІНІВ</span>
+      <svg class="glossary-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+
+    <div class="glossary-body" id="glossaryBody">
+      <div class="glossary-grid">
+        <div class="glossary-item">
+          <div class="glossary-term">Babylon.js</div>
+          <div class="glossary-def">Open-source JavaScript фреймворк для 3D рендерингу у браузері. Використовує WebGL. В AutoSmart — два незалежних engine для Hero та Garage секцій.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">GLB</div>
+          <div class="glossary-def">Бінарний формат 3D моделі (Binary glTF). Компактніший за звичайний glTF. В AutoSmart — 20 GLB файлів з Draco стисненням по 2–5 MB кожен.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Draco</div>
+          <div class="glossary-def">Алгоритм стиснення 3D геометрії від Google. Зменшує розмір GLB файлів у 2–5 разів без помітної втрати якості.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">n8n</div>
+          <div class="glossary-def">Інструмент автоматизації workflow з відкритим кодом. Аналог Zapier але self-hosted. В AutoSmart — приймає запити від фронтенду і передає до GPT-4o.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Webhook</div>
+          <div class="glossary-def">URL-адреса яка приймає HTTP POST запити від зовнішніх сервісів. В AutoSmart — фронтенд надсилає питання на n8n webhook, отримує відповідь AI.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">IntersectionObserver</div>
+          <div class="glossary-def">Браузерне API для відстеження видимості елементів у viewport. В AutoSmart — зупиняє 3D render loop коли секція не видима, економить GPU.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Telegram Web App</div>
+          <div class="glossary-def">HTML сторінка відкрита всередині Telegram через Mini App. Має доступ до даних користувача через Telegram.WebApp API. В AutoSmart — окремий AI консультант.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">ACES Tone Mapping</div>
+          <div class="glossary-def">Academy Color Encoding System — стандарт обробки кольору в кіноіндустрії. В Babylon.js додає кінематографічний вигляд 3D моделям з реалістичним контрастом.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     CONTACT + FOOTER
+══════════════════════════════════════ -->
+<section class="section" id="contact">
+  <div class="container">
+
+    <div class="cta-wrap reveal">
+      <div class="cta-eyebrow">КОНТАКТ</div>
+      <h2 class="cta-title">Якщо впізнав себе<br>в цій <span class="red">задачі</span></h2>
+      <p class="cta-sub">Я — AI-архітектор. Будую платформи та системи автоматизації для підприємців, дилерів і фаундерів яким потрібен масштаб без пропорційного зростання команди.</p>
+
+      <div class="cta-buttons">
+        <a href="https://youtu.be/cTShpl4QgZg" target="_blank" class="cta-btn cta-btn-red">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+          ДИВИТИСЬ ВІДЕО
+        </a>
+        <a href="https://t.me/bohdanhodliuk" target="_blank" class="cta-btn cta-btn-gold">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>
+          НАПИСАТИ В TELEGRAM
+        </a>
+        <a href="https://builtwithai.pro/autosmart/" target="_blank" class="cta-btn cta-btn-dark">
+          ВІДКРИТИ AUTOSMART →
+        </a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-left">
+    <div class="footer-avatar" style="background-image: url('https://raw.githubusercontent.com/bogdangodluk22-art/AutoSmart_3D/main/%D0%91%D0%BE%D0%B3%D0%B4%D0%B0%D0%BD.png'); background-size: cover; background-position: center top; border: 2px solid rgba(232,0,30,0.4);"></div>
+    <div>
+      <div class="footer-name">Богдан Годлюк</div>
+      <div class="footer-role">AI ARCHITECT · FOUNDER AUTOSMART</div>
+    </div>
+  </div>
+  <div class="footer-links">
+    <a href="https://www.youtube.com/@bohdan.hodliuk" target="_blank" class="footer-link">YouTube</a>
+    <a href="https://t.me/bohdanhodliuk" target="_blank" class="footer-link">Telegram</a>
+    <a href="https://www.instagram.com/bohdan_new" target="_blank" class="footer-link">Instagram</a>
+  </div>
+  <div class="footer-copy">© 2026 · AutoSmart · Built with AI</div>
+</footer>
+
+</body>
+</html>
